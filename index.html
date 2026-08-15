@@ -59,6 +59,44 @@ body{
 .cloud-status.ok::before{background:#22c55e;}
 .cloud-status.error::before{background:#ef4444;}
 .cloud-status.error{color:#fca5a5;}
+
+.debug-panel{
+  position:fixed; right:16px; bottom:16px; width:420px; max-width:calc(100vw - 32px);
+  max-height:60vh; background:rgba(10,14,28,0.96); border:1px solid rgba(255,255,255,0.14);
+  border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,0.5); z-index:200;
+  display:none; flex-direction:column; overflow:hidden; backdrop-filter:blur(10px);
+  font-family:'IBM Plex Mono', monospace;
+}
+.debug-panel.open{display:flex;}
+.debug-panel-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03); flex-shrink:0;
+}
+.debug-panel-title{display:flex; flex-direction:column; gap:2px; color:var(--shell-text); font-size:13px;}
+.debug-panel-summary{font-size:11px; color:var(--shell-text-dim); font-weight:400;}
+.debug-panel-head-actions{display:flex; align-items:center; gap:6px;}
+.debug-panel-head-actions button{
+  background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); color:var(--shell-text);
+  border-radius:5px; font-size:11px; padding:4px 8px; cursor:pointer; font-family:inherit;
+}
+.debug-panel-head-actions button:hover{background:rgba(255,255,255,0.16);}
+.debug-panel-body{overflow-y:auto; padding:6px 0; flex:1;}
+.debug-panel-empty{padding:14px 16px; font-size:11.5px; color:var(--shell-text-dim); line-height:1.5; font-family:'IBM Plex Sans', sans-serif;}
+.debug-entry{
+  display:flex; flex-direction:column; gap:2px; padding:7px 12px; font-size:11.5px;
+  border-bottom:1px solid rgba(255,255,255,0.06); color:var(--shell-text-dim);
+}
+.debug-entry-top{display:flex; align-items:center; gap:7px;}
+.debug-entry-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#64748b;}
+.debug-entry.pending .debug-entry-dot{background:#f59e0b;}
+.debug-entry.success .debug-entry-dot{background:#22c55e;}
+.debug-entry.error .debug-entry-dot{background:#ef4444;}
+.debug-entry-op{color:var(--shell-text); font-weight:600;}
+.debug-entry-key{color:#93c5fd;}
+.debug-entry-time{margin-left:auto; color:var(--shell-text-dim); font-size:10.5px;}
+.debug-entry-detail{padding-left:14px; color:var(--shell-text-dim); font-size:10.5px; word-break:break-word;}
+.debug-entry.error .debug-entry-detail{color:#fca5a5;}
 .cloud-banner{
   background:rgba(245,158,11,0.14); border-bottom:1px solid rgba(245,158,11,0.35);
   color:#fde68a; font-size:12.5px; padding:9px 24px; text-align:center;
@@ -351,6 +389,10 @@ body{
   </nav>
   <div class="cloud-widget">
     <span class="cloud-status" id="cloud-status">Connecting&hellip;</span>
+    <button class="shell-tab" id="debug-panel-toggle" onclick="toggleDebugPanel()" title="Show cloud sync debug log">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Sync log
+    </button>
     <button class="shell-tab" onclick="Cloud.signInGoogle()" title="Sign in with Google to sync your data across devices">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Sign in
@@ -360,6 +402,22 @@ body{
 
 <div class="cloud-banner" id="cloud-banner" style="display:none;">
   Sign in with Google to enable cloud sync across devices. Until you sign in, your data is saved only in this browser.
+</div>
+
+<div class="debug-panel" id="debug-panel">
+  <div class="debug-panel-head">
+    <div class="debug-panel-title">
+      <strong>Cloud sync log</strong>
+      <span id="debug-panel-summary" class="debug-panel-summary"></span>
+    </div>
+    <div class="debug-panel-head-actions">
+      <button type="button" onclick="clearDebugLog()">Clear</button>
+      <button type="button" onclick="toggleDebugPanel()" aria-label="Close">&times;</button>
+    </div>
+  </div>
+  <div class="debug-panel-body" id="debug-panel-body">
+    <p class="debug-panel-empty">No cloud operations logged yet. Sign in, then add/edit something to see reads and writes appear here — this mirrors what you'd see in the Network tab, but scoped to this app's Firestore calls.</p>
+  </div>
 </div>
 
 <main class="shell-main">
@@ -657,6 +715,98 @@ function showTab(name) {
 }
 </script>
 
+<script>
+// ===== Cloud sync debug log ("Network tab" for Firestore calls) =====
+// A rolling, in-page log of every read/write this app makes to Firestore,
+// so sync problems (permission-denied, offline, silently-skipped writes)
+// are visible without needing devtools. Cloud core calls DebugLog.start()
+// when a call goes out and DebugLog.finish() when it resolves.
+var DebugLog = (function () {
+  var entries = [];
+  var MAX_ENTRIES = 60;
+  var panelOpen = false;
+
+  function fmtTime(d) {
+    return d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+      '.' + String(d.getMilliseconds()).padStart(3, '0');
+  }
+
+  function render() {
+    var body = document.getElementById('debug-panel-body');
+    var summary = document.getElementById('debug-panel-summary');
+    if (!body) return;
+    if (!entries.length) {
+      body.innerHTML = '<p class="debug-panel-empty">No cloud operations logged yet. Sign in, then add/edit something to see reads and writes appear here — this mirrors what you\'d see in the Network tab, but scoped to this app\'s Firestore calls.</p>';
+    } else {
+      body.innerHTML = entries.slice().reverse().map(function (e) {
+        var statusLabel = e.status === 'pending' ? '\u2026' : (e.status === 'success' ? 'ok' : 'error');
+        var durationLabel = e.durationMs != null ? ' (' + e.durationMs + 'ms)' : '';
+        var detail = '';
+        if (e.status === 'error' && e.detail) detail = '<div class="debug-entry-detail">' + escDebug(e.detail) + '</div>';
+        else if (e.status === 'success' && e.detail) detail = '<div class="debug-entry-detail">' + escDebug(e.detail) + '</div>';
+        return '' +
+          '<div class="debug-entry ' + e.status + '">' +
+            '<div class="debug-entry-top">' +
+              '<span class="debug-entry-dot"></span>' +
+              '<span class="debug-entry-op">' + escDebug(e.op) + '</span>' +
+              '<span class="debug-entry-key">' + escDebug(e.key) + '</span>' +
+              '<span>' + statusLabel + durationLabel + '</span>' +
+              '<span class="debug-entry-time">' + fmtTime(e.time) + '</span>' +
+            '</div>' +
+            detail +
+          '</div>';
+      }).join('');
+    }
+    if (summary) {
+      var errCount = entries.filter(function (e) { return e.status === 'error'; }).length;
+      summary.textContent = entries.length + ' call' + (entries.length === 1 ? '' : 's') + (errCount ? ' \u00b7 ' + errCount + ' error' + (errCount === 1 ? '' : 's') : '');
+    }
+  }
+
+  function escDebug(s) {
+    var d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+  }
+
+  // Call when a Firestore operation starts. Returns an id to pass to finish().
+  function start(op, key) {
+    var entry = { id: Math.random().toString(36).slice(2, 9), op: op, key: key, status: 'pending', time: new Date(), startedAt: performance.now(), detail: null, durationMs: null };
+    entries.push(entry);
+    if (entries.length > MAX_ENTRIES) entries.shift();
+    render();
+    return entry.id;
+  }
+
+  // Call when it resolves. ok=true/false, detail = short human string (error message, or e.g. "found"/"not found").
+  function finish(id, ok, detail) {
+    var entry = entries.filter(function (e) { return e.id === id; })[0];
+    if (!entry) return;
+    entry.status = ok ? 'success' : 'error';
+    entry.detail = detail || null;
+    entry.durationMs = Math.round(performance.now() - entry.startedAt);
+    render();
+  }
+
+  function clear() { entries = []; render(); }
+
+  function open() {
+    var el = document.getElementById('debug-panel');
+    if (el) { el.classList.add('open'); panelOpen = true; render(); }
+  }
+  function close() {
+    var el = document.getElementById('debug-panel');
+    if (el) { el.classList.remove('open'); panelOpen = false; }
+  }
+  function toggle() { if (panelOpen) close(); else open(); }
+
+  return { start: start, finish: finish, clear: clear, toggle: toggle, open: open, close: close };
+})();
+
+function toggleDebugPanel() { DebugLog.toggle(); }
+function clearDebugLog() { DebugLog.clear(); }
+</script>
+
 <!-- ===== Cloud sync (Firebase Firestore) =====
      1. Create a free project at https://console.firebase.google.com
 
@@ -752,10 +902,12 @@ function showTab(name) {
         if (user) {
           currentUid = user.uid;
           setStatus('Synced — signed in', true);
+          if (window.DebugLog) DebugLog.finish(DebugLog.start('AUTH', user.email || '(no email)'), true, 'uid: ' + user.uid);
           readyResolve(currentUid);
         } else {
           currentUid = null;
           setStatus('Sign in to sync', false);
+          if (window.DebugLog) DebugLog.finish(DebugLog.start('AUTH', '(signed out)'), true, 'no user');
           readyResolve(null);
         }
       });
@@ -787,11 +939,15 @@ function showTab(name) {
   // safe to act on (and safe to save back over) when `ok` is true.
   async function getItemSafe(key) {
     if (!db || !currentUid) return { ok: true, exists: false, value: null };
+    var logId = window.DebugLog && DebugLog.start('READ', key);
     try {
       const snap = await getDoc(doc(db, 'users', currentUid, 'app-data', key));
-      return { ok: true, exists: snap.exists(), value: snap.exists() ? snap.data().value : null };
+      const exists = snap.exists();
+      if (window.DebugLog) DebugLog.finish(logId, true, exists ? 'found' : 'not found (empty doc)');
+      return { ok: true, exists, value: exists ? snap.data().value : null };
     } catch (err) {
       console.error('Cloud getItem failed:', key, err);
+      if (window.DebugLog) DebugLog.finish(logId, false, (err.code || '') + ' ' + (err.message || err));
       setStatus('Sync error — check connection', false, true);
       return { ok: false, exists: false, value: null };
     }
@@ -807,11 +963,14 @@ function showTab(name) {
 
   async function setItem(key, value) {
     if (!db || !currentUid) return false;
+    var logId = window.DebugLog && DebugLog.start('WRITE', key);
     try {
       await setDoc(doc(db, 'users', currentUid, 'app-data', key), { value, updatedAt: serverTimestamp() });
+      if (window.DebugLog) DebugLog.finish(logId, true, 'committed');
       return true;
     } catch (err) {
       console.error('Cloud setItem failed:', key, err);
+      if (window.DebugLog) DebugLog.finish(logId, false, (err.code || '') + ' ' + (err.message || err));
       setStatus('Sync error — changes saved locally only', false, true);
       return false;
     }
@@ -819,8 +978,16 @@ function showTab(name) {
 
   async function deleteItem(key) {
     if (!db || !currentUid) return false;
-    try { await deleteDoc(doc(db, 'users', currentUid, 'app-data', key)); return true; }
-    catch (err) { console.error('Cloud deleteItem failed:', key, err); return false; }
+    var logId = window.DebugLog && DebugLog.start('DELETE', key);
+    try {
+      await deleteDoc(doc(db, 'users', currentUid, 'app-data', key));
+      if (window.DebugLog) DebugLog.finish(logId, true, 'deleted');
+      return true;
+    } catch (err) {
+      if (window.DebugLog) DebugLog.finish(logId, false, (err.code || '') + ' ' + (err.message || err));
+      console.error('Cloud deleteItem failed:', key, err);
+      return false;
+    }
   }
 
   const saveTimers = {};
