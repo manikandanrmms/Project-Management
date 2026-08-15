@@ -325,7 +325,7 @@ body{
   </nav>
   <div class="cloud-widget">
     <span class="cloud-status" id="cloud-status">Connecting&hellip;</span>
-    <button class="shell-tab" onclick="Cloud.signInGoogle()" title="Sign in so the same data follows you across devices">
+    <button class="shell-tab" onclick="Cloud.signInGoogle()" title="Sign in with Google to sync your data across devices">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Sign in
     </button>
@@ -333,7 +333,7 @@ body{
 </header>
 
 <div class="cloud-banner" id="cloud-banner" style="display:none;">
-  Cloud sync isn't configured yet — your data is only saved in this browser. Add your Firebase config in the script near the end of this file to enable sync across devices.
+  Sign in with Google to enable cloud sync across devices. Until you sign in, your data is saved only in this browser.
 </div>
 
 <main class="shell-main">
@@ -653,11 +653,11 @@ function showTab(name) {
     getFirestore, doc, getDoc, setDoc, deleteDoc, enableIndexedDbPersistence, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
   import {
-    getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup
+    getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
   // ====== PASTE YOUR OWN FIREBASE CONFIG HERE ======
- const firebaseConfig = {
+  const firebaseConfig = {
 
   apiKey: "AIzaSyAiUAqyW-zeaclaJ96LDNo8G1BeEeG6hBs",
 
@@ -672,7 +672,6 @@ function showTab(name) {
   appId: "1:215394813379:web:ac870218a2fdc3d2522976"
 
 };
-
 
   // ===================================================
 
@@ -696,19 +695,17 @@ function showTab(name) {
       onAuthStateChanged(auth, (user) => {
         if (user) {
           currentUid = user.uid;
-          setStatus(user.isAnonymous ? 'Synced (this device)' : 'Synced — signed in', true);
+          setStatus('Synced — signed in', true);
           readyResolve(currentUid);
+        } else {
+          currentUid = null;
+          setStatus('Sign in to sync', false);
+          readyResolve(null);
         }
       });
 
-      signInAnonymously(auth).catch((err) => {
-        console.error('Firebase sign-in failed:', err);
-        setStatus('Cloud sync unavailable', false);
-        readyResolve(null);
-      });
-
-      // Never let a slow/blocked network hang the app's initial load.
-      setTimeout(() => readyResolve(currentUid), 6000);
+      // No Anonymous Authentication is used.
+      // The user signs in with Google when they click the Sign in button.
     } catch (err) {
       console.error('Firebase init failed:', err);
       setStatus('Cloud sync not configured', false);
@@ -752,27 +749,30 @@ function showTab(name) {
   }
 
   async function signInGoogle() {
-    if (!auth) { alert('Cloud sync is not configured yet. See the comment above this script for setup steps.'); return; }
+    if (!auth) {
+      alert('Cloud sync is not configured yet. Please check the Firebase configuration in this file.');
+      return;
+    }
+
     const provider = new GoogleAuthProvider();
+
     try {
-      if (auth.currentUser && auth.currentUser.isAnonymous) {
-        await linkWithPopup(auth.currentUser, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
+      await signInWithPopup(auth, provider);
       location.reload();
     } catch (err) {
       console.error('Google sign-in failed:', err);
-      if (err && err.code === 'auth/credential-already-in-use') {
-        try {
-          await signInWithPopup(auth, provider);
-          location.reload();
-        } catch (err2) {
-          alert('Sign-in failed: ' + err2.message);
-        }
-      } else {
-        alert('Sign-in failed: ' + err.message);
+
+      if (err && err.code === 'auth/popup-closed-by-user') {
+        // The user closed the Google sign-in window. No action is needed.
+        return;
       }
+
+      if (err && err.code === 'auth/popup-blocked') {
+        alert('Google sign-in was blocked by the browser. Please allow pop-ups for this site and try again.');
+        return;
+      }
+
+      alert('Google sign-in failed: ' + (err?.message || err));
     }
   }
 
