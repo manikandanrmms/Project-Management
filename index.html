@@ -1033,7 +1033,11 @@ function clearDebugLog() { DebugLog.clear(); }
     }
   }
 
-  window.Cloud = { ready: readyPromise, getItem, getItemSafe, setItem, deleteItem, scheduleSave, signInGoogle, isConfigured };
+  // Expose the live auth state as well as the initial ready promise.  This
+  // prevents modules that start before Firebase Auth finishes restoring the
+  // session from permanently seeing the initial null value.
+  function getCurrentUid() { return currentUid; }
+  window.Cloud = { ready: readyPromise, getCurrentUid, getItem, getItemSafe, setItem, deleteItem, scheduleSave, signInGoogle, isConfigured };
 </script>
 
 <script>
@@ -1120,11 +1124,28 @@ window.waitForCloud = function (timeoutMs) {
   function loadDay(d) {
     var raw = storageGet(taskKey(d));
     if (!raw) return defaultDay();
-    var parsed = JSON.parse(raw);
+
+    // Firestore now stores Daily Tasks values as native objects. Older
+    // versions of the app stored JSON strings, so accept both formats.
+    var parsed = raw;
+    if (typeof raw === "string") {
+      try { parsed = JSON.parse(raw); }
+      catch (e) {
+        console.warn("Daily Tasks: invalid saved day data for", taskKey(d), e);
+        return defaultDay();
+      }
+    }
+
+    if (!parsed || typeof parsed !== "object") return defaultDay();
+    if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
     if (typeof parsed.rolledOver === "undefined") parsed.rolledOver = false;
     return parsed;
   }
-  function saveDay(d, data) { return storageSet(taskKey(d), JSON.stringify(data)); }
+  function saveDay(d, data) {
+    // Store native objects in Firestore. Do not JSON.stringify them;
+    // JSON.stringify caused JSON.parse(Object) failures after cloud hydration.
+    return storageSet(taskKey(d), data);
+  }
 
   function completionPct(day) {
     if (!day.tasks.length) return null;
@@ -1147,12 +1168,23 @@ window.waitForCloud = function (timeoutMs) {
   function rolloverPastDays() {
     var todayKey = dateKey(nowIST());
     var metaRaw = storageGet(META_KEY);
-    var meta = metaRaw ? JSON.parse(metaRaw) : null;
+    var meta = null;
+    if (metaRaw) {
+      if (typeof metaRaw === "string") {
+        try { meta = JSON.parse(metaRaw); }
+        catch (e) {
+          console.warn("Daily Tasks: invalid rollover metadata; resetting it.", e);
+          meta = null;
+        }
+      } else if (typeof metaRaw === "object") {
+        meta = metaRaw;
+      }
+    }
 
     if (!meta) {
       // First time this feature has run: don't retroactively reshuffle
       // unknown history, just start tracking from today onward.
-      storageSet(META_KEY, JSON.stringify({ lastRollover: todayKey }));
+      storageSet(META_KEY, { lastRollover: todayKey });
       return;
     }
 
@@ -1182,7 +1214,7 @@ window.waitForCloud = function (timeoutMs) {
     }
 
     meta.lastRollover = todayKey;
-    storageSet(META_KEY, JSON.stringify(meta));
+    storageSet(META_KEY, meta);
   }
 
   // ---- state -------------------------------------------------------
@@ -1543,22 +1575,42 @@ window.waitForCloud = function (timeoutMs) {
   });
 
   // ---- cloud sync ---------------------------------------------------
-  // Firestore is the source of truth. The initial cloud read must complete
-  // successfully before the UI is allowed to edit/save the in-memory data.
+  // Firestore is the source of truth.  Daily Tasks is deliberately rendered
+  // immediately, then hydrated from Firestore as soon as Auth has restored the
+  // current user.  This avoids a race where the module starts before the
+  // Firebase module has finished evaluating or before Auth has restored a
+  // persisted Google session.
   async function hydrateFromCloud() {
     cloudReady = false;
     cloudLoadFailed = false;
-    var Cloud = await window.waitForCloud();
-    if (!Cloud) { cloudLoadFailed = true; return; }
 
-    var uid = await Cloud.ready;
-    if (!uid) { cloudLoadFailed = true; return; }
+    var Cloud = await window.waitForCloud(15000);
+    if (!Cloud) {
+      cloudLoadFailed = true;
+      state.storageOk = false;
+      return false;
+    }
+
+    // Do not trust Cloud.ready when it has already resolved to an initial null
+    // Auth state.  Read the live UID and give Auth a short window to restore it.
+    var uid = typeof Cloud.getCurrentUid === 'function' ? Cloud.getCurrentUid() : null;
+    var started = Date.now();
+    while (!uid && Date.now() - started < 15000) {
+      await new Promise(function (resolve) { setTimeout(resolve, 100); });
+      uid = typeof Cloud.getCurrentUid === 'function' ? Cloud.getCurrentUid() : null;
+    }
+
+    if (!uid) {
+      cloudLoadFailed = true;
+      state.storageOk = false;
+      return false;
+    }
 
     var result = await Cloud.getItemSafe('daily-tasks');
     if (!result.ok) {
       cloudLoadFailed = true;
       state.storageOk = false;
-      return;
+      return false;
     }
 
     memoryStore = (result.value && typeof result.value === 'object') ? result.value : {};
@@ -1566,67 +1618,88 @@ window.waitForCloud = function (timeoutMs) {
     cloudReady = true;
     cloudLoadFailed = false;
     state.storageOk = true;
+    return true;
   }
 
   // ---- init -------------------------------------------------------
-  // Firebase Auth can finish restoring a session after the classic scripts
-  // have already loaded.  Do not treat that short window as an empty cloud
-  // account.  The app waits for Cloud.ready, then loads the user's document.
-  // If the user signs in after the page is already visible, the auth event
-  // below rehydrates Daily Tasks without requiring a second page refresh.
   var dailyTasksInitialized = false;
   var dailyTasksAuthHandler = null;
+  var dailyTasksHydrationInProgress = false;
 
   async function initializeDailyTasksFromCloud() {
-    if (dailyTasksInitialized && cloudReady) return;
+    if (dailyTasksHydrationInProgress) return;
+    dailyTasksHydrationInProgress = true;
 
-    await hydrateFromCloud();
-    if (!cloudReady) {
-      state.storageOk = false;
-      loadCurrentDay();
-      loadWeek();
-      render();
-      return;
-    }
-
-    // Cloud data is now authoritative. Only perform rollover after the
-    // complete Firestore document has been loaded successfully.
-    rolloverPastDays();
-    loadCurrentDay();
-    loadWeek();
-    dailyTasksInitialized = true;
-    state.storageOk = true;
-    render();
-  }
-
-  (async function initDailyTasks() {
-    await initializeDailyTasksFromCloud();
-
-    // Listen for a later sign-in/sign-out so Daily Tasks never remains bound
-    // to an anonymous/empty in-memory state after authentication changes.
-    dailyTasksAuthHandler = async function (event) {
-      if (!event || !event.detail) return;
-      if (event.detail.uid) {
-        memoryStore = {};
-        window.DailyTasksStore = memoryStore;
-        cloudReady = false;
-        cloudLoadFailed = false;
-        dailyTasksInitialized = false;
-        await initializeDailyTasksFromCloud();
-      } else {
-        memoryStore = {};
-        window.DailyTasksStore = memoryStore;
-        cloudReady = false;
-        cloudLoadFailed = true;
-        dailyTasksInitialized = false;
+    try {
+      var loaded = await hydrateFromCloud();
+      if (!loaded) {
         state.storageOk = false;
-        state.day = defaultDay();
+        // Keep the UI usable while signed out, but never save this state to
+        // Firestore until a successful cloud read has completed.
+        memoryStore = {};
+        window.DailyTasksStore = memoryStore;
+        loadCurrentDay();
         loadWeek();
         render();
+        dailyTasksInitialized = false;
+        return;
       }
-    };
-    window.addEventListener('firebase-auth-changed', dailyTasksAuthHandler);
-  })();
+
+      // Cloud data is authoritative. Only perform rollover after the complete
+      // Firestore document has been loaded successfully.
+      rolloverPastDays();
+      loadCurrentDay();
+      loadWeek();
+      dailyTasksInitialized = true;
+      state.storageOk = true;
+      render();
+    } catch (err) {
+      console.error('Daily Tasks cloud initialization failed:', err);
+      cloudReady = false;
+      cloudLoadFailed = true;
+      state.storageOk = false;
+      render();
+    } finally {
+      dailyTasksHydrationInProgress = false;
+    }
+  }
+
+  // Render the shell immediately so the Daily Tasks panel is never blank.
+  // The panel will be replaced with the cloud-backed data after Auth/Firestore
+  // becomes ready.
+  loadCurrentDay();
+  loadWeek();
+  render();
+
+  // Register the auth listener BEFORE waiting for Firebase.  This is important
+  // because the initial Auth event can occur before Cloud.ready is observed by
+  // this module.  A later Google sign-in therefore always rehydrates the page.
+  dailyTasksAuthHandler = async function (event) {
+    var uid = event && event.detail ? event.detail.uid : null;
+
+    if (uid) {
+      memoryStore = {};
+      window.DailyTasksStore = memoryStore;
+      cloudReady = false;
+      cloudLoadFailed = false;
+      dailyTasksInitialized = false;
+      await initializeDailyTasksFromCloud();
+    } else {
+      memoryStore = {};
+      window.DailyTasksStore = memoryStore;
+      cloudReady = false;
+      cloudLoadFailed = true;
+      dailyTasksInitialized = false;
+      state.storageOk = false;
+      state.day = defaultDay();
+      loadWeek();
+      render();
+    }
+  };
+  window.addEventListener('firebase-auth-changed', dailyTasksAuthHandler);
+
+  // Then hydrate the current session if one is already signed in.
+  initializeDailyTasksFromCloud();
 })();
 
 </script>
