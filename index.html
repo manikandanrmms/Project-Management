@@ -1,3 +1,4 @@
+<!-- DAILY_TASKS_CLOUD_FIX_V5 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1121,22 +1122,25 @@ window.waitForCloud = function (timeoutMs) {
   function taskKey(d) { return "worktasks:" + dateKey(d); }
   var META_KEY = "worktasks:meta";
 
+  // Firestore returns objects directly. Older versions of this app sometimes
+  // stored JSON strings, so this converter accepts either representation.
+  // IMPORTANT: never call JSON.parse() on an object.
+  function normalizeCloudValue(raw, fallback) {
+    if (raw == null || raw === "") return fallback;
+    if (typeof raw === "object") return raw;
+    if (typeof raw !== "string") return fallback;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      console.warn("Daily Tasks: ignoring invalid legacy JSON value", e);
+      return fallback;
+    }
+  }
+
   function loadDay(d) {
     var raw = storageGet(taskKey(d));
-    if (!raw) return defaultDay();
-
-    // Firestore now stores Daily Tasks values as native objects. Older
-    // versions of the app stored JSON strings, so accept both formats.
-    var parsed = raw;
-    if (typeof raw === "string") {
-      try { parsed = JSON.parse(raw); }
-      catch (e) {
-        console.warn("Daily Tasks: invalid saved day data for", taskKey(d), e);
-        return defaultDay();
-      }
-    }
-
-    if (!parsed || typeof parsed !== "object") return defaultDay();
+    var parsed = normalizeCloudValue(raw, defaultDay());
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return defaultDay();
     if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
     if (typeof parsed.rolledOver === "undefined") parsed.rolledOver = false;
     return parsed;
@@ -1168,18 +1172,8 @@ window.waitForCloud = function (timeoutMs) {
   function rolloverPastDays() {
     var todayKey = dateKey(nowIST());
     var metaRaw = storageGet(META_KEY);
-    var meta = null;
-    if (metaRaw) {
-      if (typeof metaRaw === "string") {
-        try { meta = JSON.parse(metaRaw); }
-        catch (e) {
-          console.warn("Daily Tasks: invalid rollover metadata; resetting it.", e);
-          meta = null;
-        }
-      } else if (typeof metaRaw === "object") {
-        meta = metaRaw;
-      }
-    }
+    var meta = normalizeCloudValue(metaRaw, null);
+    if (meta && (typeof meta !== "object" || Array.isArray(meta))) meta = null;
 
     if (!meta) {
       // First time this feature has run: don't retroactively reshuffle
