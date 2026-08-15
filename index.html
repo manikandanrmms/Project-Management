@@ -852,7 +852,7 @@ function clearDebugLog() { DebugLog.clear(); }
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
   import {
-    getFirestore, doc, getDoc, setDoc, deleteDoc, enableIndexedDbPersistence, serverTimestamp
+    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
   import {
     getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup
@@ -896,7 +896,6 @@ function clearDebugLog() { DebugLog.clear(); }
       const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
       auth = getAuth(app);
-      enableIndexedDbPersistence(db).catch(() => {});
 
       onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -971,7 +970,7 @@ function clearDebugLog() { DebugLog.clear(); }
     } catch (err) {
       console.error('Cloud setItem failed:', key, err);
       if (window.DebugLog) DebugLog.finish(logId, false, (err.code || '') + ' ' + (err.message || err));
-      setStatus('Sync error — changes saved locally only', false, true);
+      setStatus('Sync error — changes were not saved', false, true);
       return false;
     }
   }
@@ -1028,38 +1027,48 @@ function clearDebugLog() { DebugLog.clear(); }
 </script>
 
 <script>
+// Cloud module is loaded with type=module, so classic scripts must wait for
+// it to finish evaluating before they attempt their initial cloud read.
+window.waitForCloud = function (timeoutMs) {
+  timeoutMs = timeoutMs || 10000;
+  return new Promise(function (resolve) {
+    var started = Date.now();
+    (function poll() {
+      if (window.Cloud) return resolve(window.Cloud);
+      if (Date.now() - started >= timeoutMs) return resolve(null);
+      setTimeout(poll, 25);
+    })();
+  });
+};
+</script>
+
+<script>
 // ===== Daily Tasks module =====
 
 (function () {
   var PRIORITIES = ["low", "medium", "high"];
   var PRIORITY_LABEL = { low: "Low", medium: "Medium", high: "High" };
 
-  // ---- storage layer -------------------------------------------------
-  // Real localStorage, as requested. Falls back to an in-memory object
-  // if localStorage is unavailable (e.g. inside a sandboxed preview),
-  // so the app still works for the current session and says so.
+  // ---- cloud-backed storage layer ------------------------------------
+  // Firestore is the only persistent store for Daily Tasks. Data is kept
+  // in memory while the page is running and persisted to the signed-in
+  // user's Firebase Cloud Firestore document.
   var memoryStore = {};
-  var usingMemoryFallback = false;
-
-  function storageAvailable() {
-    try {
-      var t = "__ls_test__";
-      window.localStorage.setItem(t, "1");
-      window.localStorage.removeItem(t);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-  usingMemoryFallback = !storageAvailable();
+  var cloudReady = false;
+  var cloudLoadFailed = false;
 
   function storageGet(key) {
-    if (usingMemoryFallback) return memoryStore[key] || null;
-    try { return window.localStorage.getItem(key); } catch (e) { return null; }
+    return Object.prototype.hasOwnProperty.call(memoryStore, key) ? memoryStore[key] : null;
   }
+
   function storageSet(key, value) {
-    if (usingMemoryFallback) { memoryStore[key] = value; return true; }
-    try { window.localStorage.setItem(key, value); return true; } catch (e) { return false; }
+    memoryStore[key] = value;
+    window.DailyTasksStore = memoryStore;
+    if (cloudReady && window.Cloud) {
+      Cloud.scheduleSave('daily-tasks', function () { return memoryStore; }, 500);
+      state.storageOk = true;
+    }
+    return true;
   }
 
   // ---- date helpers ----------------------------------------------------
@@ -1441,8 +1450,8 @@ function clearDebugLog() { DebugLog.clear(); }
     var app = document.getElementById('dt-app');
     app.innerHTML = '' +
       '<div class="wrap">' +
-        '<div class="banner' + (usingMemoryFallback ? ' show' : '') + '">' +
-          '&#9888;&#65039; Browser storage isn\'t available in this preview, so tasks are held in memory for this session only. Download the file and open it directly in a browser (or host it) to get real persistent saving.' +
+        '<div class="banner' + ((!cloudReady || cloudLoadFailed) ? ' show' : '') + '>' +
+          ((!cloudReady || cloudLoadFailed) ? '&#9888;&#65039; Sign in with Google to load and save your tasks in Firebase Cloud Firestore.' : '') +
         '</div>' +
         '<div class="masthead">' +
           '<div>' +
@@ -1463,7 +1472,7 @@ function clearDebugLog() { DebugLog.clear(); }
         renderPanel() +
         '<div class="footer-row">' +
           '<button class="reset-btn" data-action="reset-day">' + ICONS.reset + ' Clear this day\'s tasks</button>' +
-          '<span class="storage-note">' + (usingMemoryFallback ? 'in-memory (session only)' : (state.storageOk ? 'saved to localStorage' : 'save failed — check browser storage settings')) + '</span>' +
+          '<span class="storage-note">' + (cloudReady && !cloudLoadFailed ? 'saved to Firebase Cloud' : 'cloud sign-in required') + '</span>' +
         '</div>' +
       '</div>';
   }
@@ -1520,56 +1529,30 @@ function clearDebugLog() { DebugLog.clear(); }
   });
 
   // ---- cloud sync ---------------------------------------------------
-  // All worktasks:* keys are mirrored as one object under a single cloud
-  // document, so first-time sync doubles as migration: an empty cloud copy
-  // just falls back to whatever is already in this browser, and the first
-  // save pushes it up.
-  //
-  // IMPORTANT: pushes to the cloud are gated behind `cloudSyncArmed`, which
-  // only becomes true once the initial cloud read has *confirmed* either
-  // real data or a genuinely empty document — never on a read that merely
-  // failed. Without this gate, a signed-in load on a new device that hits a
-  // transient read error (offline blip, rules not yet propagated, etc.)
-  // would look identical to "nothing saved yet", and the very next local
-  // write would silently overwrite the real cloud data with whatever this
-  // fresh device happens to have (usually nothing). That mechanism is what
-  // caused previously-synced data to appear to "reset" on other devices.
-  var cloudSyncArmed = false;
-
+  // Firestore is the source of truth. The initial cloud read must complete
+  // successfully before the UI is allowed to edit/save the in-memory data.
   async function hydrateFromCloud() {
-    if (!window.Cloud) { cloudSyncArmed = true; return; }
+    cloudReady = false;
+    cloudLoadFailed = false;
+    var Cloud = await window.waitForCloud();
+    if (!Cloud) { cloudLoadFailed = true; return; }
+
     var uid = await Cloud.ready;
-    if (!uid) { cloudSyncArmed = true; return; } // not signed in: local-only is expected
+    if (!uid) { cloudLoadFailed = true; return; }
+
     var result = await Cloud.getItemSafe('daily-tasks');
     if (!result.ok) {
-      // Read failed — do NOT arm pushes this session. The app keeps working
-      // from local storage, and the cloud copy is left untouched until a
-      // future successful load can safely reconcile it.
-      cloudSyncArmed = false;
+      cloudLoadFailed = true;
+      state.storageOk = false;
       return;
     }
-    if (result.value && typeof result.value === 'object') {
-      Object.keys(result.value).forEach(function (k) {
-        storageSet(k, JSON.stringify(result.value[k]));
-      });
-    }
-    cloudSyncArmed = true;
+
+    memoryStore = (result.value && typeof result.value === 'object') ? result.value : {};
+    window.DailyTasksStore = memoryStore;
+    cloudReady = true;
+    cloudLoadFailed = false;
+    state.storageOk = true;
   }
-  function pushToCloud() {
-    if (!window.Cloud || !cloudSyncArmed) return;
-    var snapshot = {};
-    Object.keys(localStorage).filter(function (k) { return k.indexOf('worktasks:') === 0; })
-      .forEach(function (k) {
-        try { snapshot[k] = JSON.parse(localStorage.getItem(k)); } catch (e) {}
-      });
-    Cloud.scheduleSave('daily-tasks', function () { return snapshot; });
-  }
-  var _origStorageSet = storageSet;
-  storageSet = function (key, value) {
-    var ok = _origStorageSet(key, value);
-    pushToCloud();
-    return ok;
-  };
 
   // ---- init -------------------------------------------------------
   (async function initDailyTasks() {
@@ -1605,7 +1588,8 @@ let issuesCloudSyncArmed = false;
 async function loadState() {
   try {
     let loadedFromCloud = false;
-    if (window.Cloud) {
+    const Cloud = await window.waitForCloud();
+    if (Cloud) {
       const uid = await Cloud.ready;
       if (uid) {
         const result = await Cloud.getItemSafe('issues');
@@ -1618,14 +1602,15 @@ async function loadState() {
           issuesCloudSyncArmed = false;
         }
       } else {
-        issuesCloudSyncArmed = true; // not signed in: local-only is expected
+        issuesCloudSyncArmed = false; // not signed in: cloud persistence is unavailable
       }
     } else {
-      issuesCloudSyncArmed = true; // cloud sync not configured: local-only
+      issuesCloudSyncArmed = false; // cloud sync not configured
     }
     if (!loadedFromCloud) {
-      const raw = localStorage.getItem('issue-log-state');
-      if (raw) issues = JSON.parse(raw);
+      // Cloud is the source of truth. If no cloud document exists yet, start
+      // with the example data; the first explicit save creates the cloud document.
+      issues = [];
     }
   } catch(e) { console.error('Failed to load saved data:', e); }
   if (!issues.length) seedExample();
@@ -1634,9 +1619,12 @@ async function loadState() {
 }
 
 async function saveState() {
-  try { localStorage.setItem('issue-log-state', JSON.stringify(issues)); }
-  catch(e) { console.error('Failed to save data:', e); alert('Could not save your data. Your browser storage may be full or disabled.'); }
-  if (window.Cloud && issuesCloudSyncArmed) Cloud.scheduleSave('issues', () => issues, 500);
+  if (window.Cloud && issuesCloudSyncArmed) {
+    Cloud.scheduleSave('issues', () => issues, 500);
+    return true;
+  }
+  console.warn('Issue Log: not signed in; changes are not persisted to cloud.');
+  return false;
 }
 
 function seedExample() {
@@ -2155,36 +2143,18 @@ let plans = [
   ])),
 ];
 
-// ---------- local persistence (issue 1: works even without Firebase) ----
-// The planner previously had no storage layer of its own — it only ever
-// synced through Firebase, so anyone not signed in (or without Firestore
-// configured) lost every plan and person on refresh. This mirrors the
-// pattern already used by the Daily Tasks and Issue Log modules.
+// ---------- cloud persistence ------------------------------------------
+// Firestore is the only persistent store for Planner data.
 const PLANNER_PLANS_KEY = "planner-plans-v1";
 const PLANNER_PEOPLE_KEY = "planner-people-v1";
 
-function plLoadLocal() {
-  try {
-    const rawPlans = localStorage.getItem(PLANNER_PLANS_KEY);
-    const rawPeople = localStorage.getItem(PLANNER_PEOPLE_KEY);
-    if (rawPlans) {
-      const parsed = JSON.parse(rawPlans);
-      if (Array.isArray(parsed) && parsed.length) plans = parsed;
-    }
-    if (rawPeople) {
-      const parsed = JSON.parse(rawPeople);
-      if (Array.isArray(parsed)) people = parsed;
-    }
-  } catch (e) { console.error("Planner: failed to read local storage", e); }
-}
-plLoadLocal();
-
-function plSaveLocal() {
-  try {
-    localStorage.setItem(PLANNER_PLANS_KEY, JSON.stringify(plans));
-    localStorage.setItem(PLANNER_PEOPLE_KEY, JSON.stringify(people));
+function plSaveCloud() {
+  if (window.Cloud && plCloudSyncArmed) {
+    Cloud.scheduleSave('planner-plans', () => plans);
+    Cloud.scheduleSave('planner-people', () => people);
     return true;
-  } catch (e) { console.error("Planner: failed to save to local storage", e); return false; }
+  }
+  return false;
 }
 
 let currentPlanId = plans[0].id;
@@ -2601,26 +2571,22 @@ function renderCharts() {
 // module: without this guard, a signed-in load on a new device that hits a
 // transient read error looks identical to "nothing saved yet", and the
 // very next render would silently overwrite real cloud data with local
-// defaults. Local storage is unaffected by this flag and always saves.
+// defaults. Cloud persistence is controlled by this flag.
 let plCloudSyncArmed = false;
 
 // ---------- top-level render ----------
 function plRenderAll() {
   renderPlanSelect();
   if (currentView === "board") renderBoard(); else renderCharts();
-  plSaveLocal();
-  if (window.Cloud && plCloudSyncArmed) {
-    Cloud.scheduleSave('planner-plans', () => plans);
-    Cloud.scheduleSave('planner-people', () => people);
-  }
+  plSaveCloud();
 }
 
-// First-ever cloud load has nothing saved yet, so this naturally falls back
-// to whatever's in local storage (or the sample data on a brand-new
-// browser) and migrates it up on the very next save — no separate
-// migration step needed.
+// First-ever cloud load has no saved document yet, so the planner uses
+// its built-in starter data in memory. The first explicit save creates
+// the user's Firestore document.
 (async function initPlanner() {
-  if (window.Cloud) {
+  const Cloud = await window.waitForCloud();
+  if (Cloud) {
     const uid = await Cloud.ready;
     if (uid) {
       const plansResult = await Cloud.getItemSafe('planner-plans');
@@ -2634,14 +2600,13 @@ function plRenderAll() {
         plCloudSyncArmed = true;
       }
       // If either read failed, leave plCloudSyncArmed false: the planner
-      // keeps working from local storage, and nothing gets pushed to
-      // Firestore (and possibly clobber real data) until a future load
-      // succeeds.
+      // keeps the current in-memory state, and nothing gets pushed to
+      // Firestore until a future successful load succeeds.
     } else {
-      plCloudSyncArmed = true; // not signed in: local-only sync is expected
+      plCloudSyncArmed = false; // not signed in: cloud persistence is unavailable
     }
   } else {
-    plCloudSyncArmed = true; // cloud sync not configured: local-only
+    plCloudSyncArmed = false; // cloud sync not configured
   }
   plRenderAll();
 })();
@@ -2686,9 +2651,10 @@ function dashDateKey(d) {
 function dashAddDays(d, n) { const nd = new Date(d); nd.setDate(nd.getDate() + n); return nd; }
 function dashLoadDay(d) {
   try {
-    const raw = localStorage.getItem('worktasks:' + dashDateKey(d));
+    const store = window.DailyTasksStore || {};
+    const raw = store['worktasks:' + dashDateKey(d)];
     if (!raw) return { tasks: [], rolledOver: false };
-    const parsed = JSON.parse(raw);
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (typeof parsed.rolledOver === 'undefined') parsed.rolledOver = false;
     return parsed;
   } catch (e) { return { tasks: [], rolledOver: false }; }
