@@ -401,7 +401,7 @@ body{
 </header>
 
 <div class="cloud-banner" id="cloud-banner" style="display:none;">
-  Sign in with Google to enable cloud sync across devices. Until you sign in, your data is saved only in this browser.
+  Sign in with Google to load and save your Daily Tasks in Firebase Cloud Firestore. <button type="button" onclick="Cloud.signInGoogle()" style="margin-left:8px;padding:5px 10px;border:1px solid rgba(255,255,255,.35);border-radius:6px;background:#fff;color:#1f2937;cursor:pointer;font-weight:600;">Sign in</button>
 </div>
 
 <div class="debug-panel" id="debug-panel">
@@ -901,13 +901,23 @@ function clearDebugLog() { DebugLog.clear(); }
         if (user) {
           currentUid = user.uid;
           setStatus('Synced — signed in', true);
+          const banner = document.getElementById('cloud-banner');
+          if (banner) banner.style.display = 'none';
           if (window.DebugLog) DebugLog.finish(DebugLog.start('AUTH', user.email || '(no email)'), true, 'uid: ' + user.uid);
           readyResolve(currentUid);
+          window.dispatchEvent(new CustomEvent('firebase-auth-changed', {
+            detail: { uid: user.uid, email: user.email || '' }
+          }));
         } else {
           currentUid = null;
           setStatus('Sign in to sync', false);
+          const banner = document.getElementById('cloud-banner');
+          if (banner) banner.style.display = 'block';
           if (window.DebugLog) DebugLog.finish(DebugLog.start('AUTH', '(signed out)'), true, 'no user');
           readyResolve(null);
+          window.dispatchEvent(new CustomEvent('firebase-auth-changed', {
+            detail: { uid: null }
+          }));
         }
       });
 
@@ -1062,12 +1072,16 @@ window.waitForCloud = function (timeoutMs) {
   }
 
   function storageSet(key, value) {
+    // Keep the live UI state in memory, but never claim it is persisted until
+    // Firebase Auth is ready and the Firestore-backed store has been loaded.
     memoryStore[key] = value;
     window.DailyTasksStore = memoryStore;
-    if (cloudReady && window.Cloud) {
-      Cloud.scheduleSave('daily-tasks', function () { return memoryStore; }, 500);
-      state.storageOk = true;
+    if (!cloudReady || !window.Cloud || !window.Cloud.ready) {
+      state.storageOk = false;
+      return false;
     }
+    Cloud.scheduleSave('daily-tasks', function () { return memoryStore; }, 500);
+    state.storageOk = true;
     return true;
   }
 
@@ -1555,12 +1569,63 @@ window.waitForCloud = function (timeoutMs) {
   }
 
   // ---- init -------------------------------------------------------
-  (async function initDailyTasks() {
+  // Firebase Auth can finish restoring a session after the classic scripts
+  // have already loaded.  Do not treat that short window as an empty cloud
+  // account.  The app waits for Cloud.ready, then loads the user's document.
+  // If the user signs in after the page is already visible, the auth event
+  // below rehydrates Daily Tasks without requiring a second page refresh.
+  var dailyTasksInitialized = false;
+  var dailyTasksAuthHandler = null;
+
+  async function initializeDailyTasksFromCloud() {
+    if (dailyTasksInitialized && cloudReady) return;
+
     await hydrateFromCloud();
+    if (!cloudReady) {
+      state.storageOk = false;
+      loadCurrentDay();
+      loadWeek();
+      render();
+      return;
+    }
+
+    // Cloud data is now authoritative. Only perform rollover after the
+    // complete Firestore document has been loaded successfully.
     rolloverPastDays();
     loadCurrentDay();
     loadWeek();
+    dailyTasksInitialized = true;
+    state.storageOk = true;
     render();
+  }
+
+  (async function initDailyTasks() {
+    await initializeDailyTasksFromCloud();
+
+    // Listen for a later sign-in/sign-out so Daily Tasks never remains bound
+    // to an anonymous/empty in-memory state after authentication changes.
+    dailyTasksAuthHandler = async function (event) {
+      if (!event || !event.detail) return;
+      if (event.detail.uid) {
+        memoryStore = {};
+        window.DailyTasksStore = memoryStore;
+        cloudReady = false;
+        cloudLoadFailed = false;
+        dailyTasksInitialized = false;
+        await initializeDailyTasksFromCloud();
+      } else {
+        memoryStore = {};
+        window.DailyTasksStore = memoryStore;
+        cloudReady = false;
+        cloudLoadFailed = true;
+        dailyTasksInitialized = false;
+        state.storageOk = false;
+        state.day = defaultDay();
+        loadWeek();
+        render();
+      }
+    };
+    window.addEventListener('firebase-auth-changed', dailyTasksAuthHandler);
   })();
 })();
 
