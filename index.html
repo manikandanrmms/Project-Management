@@ -57,6 +57,8 @@ body{
 .cloud-status{font-size:12px; color:var(--shell-text-dim); display:flex; align-items:center; gap:6px; white-space:nowrap;}
 .cloud-status::before{content:''; width:7px; height:7px; border-radius:50%; background:#f59e0b; display:inline-block; flex-shrink:0;}
 .cloud-status.ok::before{background:#22c55e;}
+.cloud-status.error::before{background:#ef4444;}
+.cloud-status.error{color:#fca5a5;}
 .cloud-banner{
   background:rgba(245,158,11,0.14); border-bottom:1px solid rgba(245,158,11,0.35);
   color:#fde68a; font-size:12.5px; padding:9px 24px; text-align:center;
@@ -293,6 +295,30 @@ body{
     text-transform: uppercase; border-radius: 3px; padding: 2px 6px; flex-shrink: 0; } .app-daily .prio-pill.low { color: var(--muted); border: 1px solid var(--rule); } .app-daily .prio-pill.medium { color: var(--amber); border: 1px solid var(--amber); } .app-daily .prio-pill.high { color: var(--red); border: 1px solid var(--red); } .app-daily .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px;
     display: flex; opacity: 0.6; } .app-daily .del-btn:hover { color: var(--red); opacity: 1; } .app-daily .empty-note { font-size: 12.5px; color: var(--muted); font-style: italic; padding: 6px 4px 2px; } .app-daily .footer-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 0 4px; flex-wrap: wrap; gap: 8px; } .app-daily .reset-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid rgba(236,239,233,0.25);
     color: var(--paper); font-size: 12px; padding: 7px 12px; border-radius: 6px; cursor: pointer; } .app-daily .reset-btn:hover { border-color: var(--red); color: var(--red); } .app-daily .storage-note { font-size: 11px; color: rgba(236,239,233,0.5); font-family: 'IBM Plex Mono', monospace; }
+  .app-daily ul.entries li { display: block; padding: 9px 4px; border-bottom: 1px dashed var(--rule); }
+  .app-daily ul.entries li:last-child { border-bottom: none; }
+  .app-daily .entry-row { display: flex; align-items: center; gap: 10px; }
+  .app-daily .comment-toggle-btn { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 4px; flex-shrink: 0; border-radius: 4px; }
+  .app-daily .comment-toggle-btn:hover { color: var(--cobalt); background: rgba(59,91,165,0.08); }
+  .app-daily .comment-toggle-btn.has-comments { color: var(--cobalt); }
+  .app-daily .comments-panel { margin: 8px 0 2px 30px; padding: 10px 12px; background: rgba(27,36,48,0.03); border-radius: 6px; border: 1px solid var(--rule); }
+  .app-daily .comment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .app-daily .comment-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--rule); }
+  .app-daily .comment-item:last-child { border-bottom: none; }
+  .app-daily .comment-body-wrap { flex: 1; min-width: 0; }
+  .app-daily .comment-body { font-size: 12.5px; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
+  .app-daily .comment-meta { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+  .app-daily .comment-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .app-daily .comment-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10.5px; padding: 3px 5px; border-radius: 3px; }
+  .app-daily .comment-actions button:hover { color: var(--cobalt); background: rgba(59,91,165,0.08); }
+  .app-daily .comment-actions button.comment-delete:hover { color: var(--red); background: rgba(168,80,63,0.08); }
+  .app-daily .comment-form { display: flex; gap: 6px; margin-top: 8px; }
+  .app-daily .comment-form textarea { flex: 1; font-size: 12.5px; padding: 6px 8px; border-radius: 5px; border: 1px solid var(--rule); font-family: inherit; resize: vertical; min-height: 32px; background: var(--paper); color: var(--ink); }
+  .app-daily .comment-form-actions { display: flex; flex-direction: column; gap: 4px; }
+  .app-daily .comment-form button { background: var(--cobalt); color: var(--paper); border: none; border-radius: 5px; padding: 6px 10px; font-size: 11.5px; cursor: pointer; white-space: nowrap; }
+  .app-daily .comment-form button:hover { background: var(--cobalt-deep); }
+  .app-daily .comment-form button.comment-cancel-btn { background: none; color: var(--muted); border: 1px solid var(--rule); }
+  .app-daily .comment-empty { font-size: 11.5px; color: var(--muted); font-style: italic; padding: 2px 0 4px; }
 
 
 .panel-card{overflow:hidden;}
@@ -633,9 +659,21 @@ function showTab(name) {
 
 <!-- ===== Cloud sync (Firebase Firestore) =====
      1. Create a free project at https://console.firebase.google.com
-     2. Enable Firestore Database (production mode) and Authentication -> Sign-in method -> Anonymous
-        (and, optionally, Google, so the same data can follow you across devices).
-     3. Firestore -> Rules, paste:
+
+     2. Enable Firestore Database (production mode) and Authentication ->
+        Sign-in method -> Google. This app signs in with Google only (no
+        Anonymous auth), because anonymous sessions get a fresh random UID
+        per browser — the previous version of this comment mentioned
+        enabling Anonymous auth, but that path guarantees different devices
+        never see each other's data even when it's "the same user". Google
+        sign-in gives every device the same uid for the same account, which
+        is what makes cross-device sync possible at all.
+
+     3. Firestore -> Rules, paste EXACTLY this and click Publish (a rule
+        that's saved as a draft but never published silently blocks every
+        read/write — the app fails closed and just looks like an empty
+        account on every device, which is the single most common cause of
+        "my data disappeared on another browser"):
           rules_version = '2';
           service cloud.firestore {
             match /databases/{database}/documents {
@@ -644,9 +682,23 @@ function showTab(name) {
               }
             }
           }
-     4. Project settings -> General -> Your apps -> Web app -> copy the firebaseConfig
-        object and paste it below, replacing the placeholder values.
-     Until you do this, the app runs exactly as before, saving only in this browser. -->
+
+     4. Authentication -> Settings -> Authorized domains: add every domain
+        this app is served from, e.g. your-username.github.io (GitHub Pages
+        deployments are NOT authorized by default). Sign-in silently fails
+        or the popup errors out if the current domain isn't on this list.
+
+     5. Project settings -> General -> Your apps -> Web app -> copy the
+        firebaseConfig object and paste it below, replacing the placeholder
+        values.
+
+     Until you do this, the app runs exactly as before, saving only in this
+     browser. If sign-in succeeds but data still doesn't follow you across
+     devices, open the browser console: this app now surfaces cloud
+     read/write failures there and in the "cloud-status" pill instead of
+     silently swallowing them (see getItemSafe()/setItem() below), so a
+     rules or domain problem will show up as a visible "Sync error" instead
+     of a quiet data reset. -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
   import {
@@ -677,9 +729,13 @@ function showTab(name) {
 
   const isConfigured = !!(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_"));
 
-  function setStatus(text, ok) {
+  function setStatus(text, ok, isError) {
     const el = document.getElementById('cloud-status');
-    if (el) { el.textContent = text; el.classList.toggle('ok', !!ok); }
+    if (el) {
+      el.textContent = text;
+      el.classList.toggle('ok', !!ok);
+      el.classList.toggle('error', !!isError);
+    }
   }
 
   let db = null, auth = null, currentUid = null, readyResolve;
@@ -720,12 +776,33 @@ function showTab(name) {
     readyResolve(null);
   }
 
-  async function getItem(key) {
-    if (!db || !currentUid) return null;
+  // getItemSafe() is the load-time primitive every module should use.
+  // It NEVER collapses "no document saved yet" and "the read failed" into
+  // the same falsy value the way the old getItem() did — that conflation
+  // was the root cause of data appearing to "reset" on a new browser: a
+  // transient read error (rules not yet propagated, offline blip, etc.)
+  // looked identical to "brand-new user", so the caller would fall back to
+  // local/sample data and then immediately re-save it to Firestore,
+  // overwriting the real cloud copy. Callers must only treat the result as
+  // safe to act on (and safe to save back over) when `ok` is true.
+  async function getItemSafe(key) {
+    if (!db || !currentUid) return { ok: true, exists: false, value: null };
     try {
       const snap = await getDoc(doc(db, 'users', currentUid, 'app-data', key));
-      return snap.exists() ? snap.data().value : null;
-    } catch (err) { console.error('Cloud getItem failed:', key, err); return null; }
+      return { ok: true, exists: snap.exists(), value: snap.exists() ? snap.data().value : null };
+    } catch (err) {
+      console.error('Cloud getItem failed:', key, err);
+      setStatus('Sync error — check connection', false, true);
+      return { ok: false, exists: false, value: null };
+    }
+  }
+
+  // Back-compat plain-value accessor for any caller that doesn't need to
+  // distinguish "no data" from "read failed". Prefer getItemSafe() for any
+  // load path whose result might later be written back to the cloud.
+  async function getItem(key) {
+    const r = await getItemSafe(key);
+    return r.value;
   }
 
   async function setItem(key, value) {
@@ -733,7 +810,11 @@ function showTab(name) {
     try {
       await setDoc(doc(db, 'users', currentUid, 'app-data', key), { value, updatedAt: serverTimestamp() });
       return true;
-    } catch (err) { console.error('Cloud setItem failed:', key, err); return false; }
+    } catch (err) {
+      console.error('Cloud setItem failed:', key, err);
+      setStatus('Sync error — changes saved locally only', false, true);
+      return false;
+    }
   }
 
   async function deleteItem(key) {
@@ -776,7 +857,7 @@ function showTab(name) {
     }
   }
 
-  window.Cloud = { ready: readyPromise, getItem, setItem, deleteItem, scheduleSave, signInGoogle, isConfigured };
+  window.Cloud = { ready: readyPromise, getItem, getItemSafe, setItem, deleteItem, scheduleSave, signInGoogle, isConfigured };
 </script>
 
 <script>
@@ -921,7 +1002,9 @@ function showTab(name) {
     filter: "all", // all | active | completed
     weekDays: [],
     streak: 0,
-    storageOk: true
+    storageOk: true,
+    openComments: {},      // taskId -> true when the comment panel is expanded
+    editingComment: null   // { taskId, commentId } while an existing comment is being edited
   };
 
   function loadCurrentDay() { state.day = loadDay(state.currentDate); }
@@ -960,11 +1043,68 @@ function showTab(name) {
   function addTask(text, priority, due) {
     text = text.trim();
     if (!text) return;
-    updateDay(function (d) { d.tasks.push({ id: uid(), text: text, done: false, priority: priority, due: due || null }); });
+    updateDay(function (d) { d.tasks.push({ id: uid(), text: text, done: false, priority: priority, due: due || null, comments: [] }); });
   }
   function toggleTask(id) { updateDay(function (d) { d.tasks.forEach(function (t) { if (t.id === id) t.done = !t.done; }); }); }
-  function deleteTask(id) { updateDay(function (d) { d.tasks = d.tasks.filter(function (t) { return t.id !== id; }); }); }
+  function deleteTask(id) {
+    delete state.openComments[id];
+    if (state.editingComment && state.editingComment.taskId === id) state.editingComment = null;
+    updateDay(function (d) { d.tasks = d.tasks.filter(function (t) { return t.id !== id; }); });
+  }
   function setFilter(f) { state.filter = f; render(); }
+
+  // ---- per-task comments ---------------------------------------------
+  function findTask(d, taskId) {
+    for (var i = 0; i < d.tasks.length; i++) { if (d.tasks[i].id === taskId) return d.tasks[i]; }
+    return null;
+  }
+  function toggleComments(taskId) {
+    state.openComments[taskId] = !state.openComments[taskId];
+    if (!state.openComments[taskId] && state.editingComment && state.editingComment.taskId === taskId) {
+      state.editingComment = null;
+    }
+    render();
+  }
+  function addComment(taskId, text) {
+    text = (text || "").trim();
+    if (!text) return;
+    updateDay(function (d) {
+      var t = findTask(d, taskId);
+      if (!t) return;
+      if (!t.comments) t.comments = [];
+      t.comments.push({ id: uid(), text: text, createdAt: nowIST().toISOString(), editedAt: null });
+    });
+    state.openComments[taskId] = true;
+  }
+  function startEditComment(taskId, commentId) { state.editingComment = { taskId: taskId, commentId: commentId }; render(); }
+  function cancelEditComment() { state.editingComment = null; render(); }
+  function saveEditComment(taskId, commentId, text) {
+    text = (text || "").trim();
+    if (!text) return;
+    updateDay(function (d) {
+      var t = findTask(d, taskId);
+      if (!t || !t.comments) return;
+      t.comments.forEach(function (c) { if (c.id === commentId) { c.text = text; c.editedAt = nowIST().toISOString(); } });
+    });
+    state.editingComment = null;
+  }
+  function deleteComment(taskId, commentId) {
+    if (!window.confirm("Delete this comment? This can't be undone.")) return;
+    if (state.editingComment && state.editingComment.taskId === taskId && state.editingComment.commentId === commentId) {
+      state.editingComment = null;
+    }
+    updateDay(function (d) {
+      var t = findTask(d, taskId);
+      if (!t || !t.comments) return;
+      t.comments = t.comments.filter(function (c) { return c.id !== commentId; });
+    });
+  }
+  function fmtCommentTime(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + " \u00b7 " +
+      d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  }
 
   function resetDay() {
     if (window.confirm("Clear all tasks for " + fmtDate(state.currentDate) + "? This can't be undone.")) {
@@ -1030,20 +1170,69 @@ function showTab(name) {
     return tasks;
   }
 
+  function renderCommentItem(t, c) {
+    var isEditing = state.editingComment && state.editingComment.taskId === t.id && state.editingComment.commentId === c.id;
+    if (isEditing) {
+      return '' +
+        '<li class="comment-item">' +
+          '<form class="comment-form" data-form="edit-comment" data-task-id="' + t.id + '" data-comment-id="' + c.id + '" style="flex:1;">' +
+            '<textarea name="comment" maxlength="500" rows="2">' + esc(c.text) + '</textarea>' +
+            '<div class="comment-form-actions">' +
+              '<button type="submit">Save</button>' +
+              '<button type="button" class="comment-cancel-btn" data-action="cancel-edit-comment">Cancel</button>' +
+            '</div>' +
+          '</form>' +
+        '</li>';
+    }
+    var stamp = c.editedAt ? ' (edited ' + esc(fmtCommentTime(c.editedAt)) + ')' : '';
+    return '' +
+      '<li class="comment-item">' +
+        '<div class="comment-body-wrap">' +
+          '<div class="comment-body">' + esc(c.text) + '</div>' +
+          '<div class="comment-meta">' + esc(fmtCommentTime(c.createdAt)) + stamp + '</div>' +
+        '</div>' +
+        '<div class="comment-actions">' +
+          '<button type="button" data-action="edit-comment" data-task-id="' + t.id + '" data-comment-id="' + c.id + '" aria-label="Edit comment">Edit</button>' +
+          '<button type="button" class="comment-delete" data-action="delete-comment" data-task-id="' + t.id + '" data-comment-id="' + c.id + '" aria-label="Delete comment">Delete</button>' +
+        '</div>' +
+      '</li>';
+  }
+
+  function renderCommentsPanel(t) {
+    var comments = t.comments || [];
+    var list = comments.length
+      ? '<ul class="comment-list">' + comments.map(function (c) { return renderCommentItem(t, c); }).join('') + '</ul>'
+      : '<p class="comment-empty">No comments yet — add the first one below.</p>';
+    return '' +
+      '<div class="comments-panel">' +
+        list +
+        '<form class="comment-form" data-form="add-comment" data-task-id="' + t.id + '">' +
+          '<textarea name="comment" maxlength="500" rows="2" placeholder="Add a comment&hellip;"></textarea>' +
+          '<button type="submit">Add</button>' +
+        '</form>' +
+      '</div>';
+  }
+
   function renderTaskItem(t) {
     var metaParts = [];
     if (t.carriedFrom) metaParts.push('carried from ' + fmtShort(parseDateKey(t.carriedFrom)));
     if (t.due) metaParts.push('due ' + t.due);
     var meta = metaParts.join(' \u00b7 ');
+    var commentCount = (t.comments || []).length;
+    var isOpen = !!state.openComments[t.id];
     return '' +
       '<li>' +
-        '<button class="stamp' + (t.done ? ' done' : '') + '" data-action="toggle-task" data-id="' + t.id + '" aria-label="Toggle task"></button>' +
-        '<div class="entry-main">' +
-          '<span class="entry-text' + (t.done ? ' done' : '') + '">' + esc(t.text) + '</span>' +
-          (meta ? '<span class="entry-meta' + (t.carriedFrom ? ' carried' : '') + '">' + esc(meta) + '</span>' : '') +
+        '<div class="entry-row">' +
+          '<button class="stamp' + (t.done ? ' done' : '') + '" data-action="toggle-task" data-id="' + t.id + '" aria-label="Toggle task"></button>' +
+          '<div class="entry-main">' +
+            '<span class="entry-text' + (t.done ? ' done' : '') + '">' + esc(t.text) + '</span>' +
+            (meta ? '<span class="entry-meta' + (t.carriedFrom ? ' carried' : '') + '">' + esc(meta) + '</span>' : '') +
+          '</div>' +
+          '<span class="prio-pill ' + t.priority + '">' + PRIORITY_LABEL[t.priority] + '</span>' +
+          '<button class="comment-toggle-btn' + (commentCount ? ' has-comments' : '') + '" data-action="toggle-comments" data-id="' + t.id + '" aria-label="Toggle comments" aria-expanded="' + (isOpen ? 'true' : 'false') + '">\uD83D\uDCAC ' + commentCount + '</button>' +
+          '<button class="del-btn" data-action="delete-task" data-id="' + t.id + '" aria-label="Delete task">' + ICONS.trash + '</button>' +
         '</div>' +
-        '<span class="prio-pill ' + t.priority + '">' + PRIORITY_LABEL[t.priority] + '</span>' +
-        '<button class="del-btn" data-action="delete-task" data-id="' + t.id + '" aria-label="Delete task">' + ICONS.trash + '</button>' +
+        (isOpen ? renderCommentsPanel(t) : '') +
       '</li>';
   }
 
@@ -1125,19 +1314,42 @@ function showTab(name) {
       case 'delete-task': deleteTask(btn.getAttribute('data-id')); break;
       case 'set-filter': setFilter(btn.getAttribute('data-filter')); break;
       case 'reset-day': resetDay(); break;
+      case 'toggle-comments': toggleComments(btn.getAttribute('data-id')); break;
+      case 'edit-comment': startEditComment(btn.getAttribute('data-task-id'), btn.getAttribute('data-comment-id')); break;
+      case 'cancel-edit-comment': cancelEditComment(); break;
+      case 'delete-comment': deleteComment(btn.getAttribute('data-task-id'), btn.getAttribute('data-comment-id')); break;
     }
   });
 
   document.addEventListener('submit', function (e) {
-    var form = e.target.closest('form[data-form="task"]');
-    if (!form) return;
-    e.preventDefault();
-    var text = form.querySelector('input[name=text]').value;
-    var priority = form.querySelector('select[name=priority]').value;
-    var due = form.querySelector('input[name=due]').value;
-    addTask(text, priority, due);
-    form.querySelector('input[name=text]').value = '';
-    form.querySelector('input[name=due]').value = '';
+    var taskForm = e.target.closest('form[data-form="task"]');
+    if (taskForm) {
+      e.preventDefault();
+      var text = taskForm.querySelector('input[name=text]').value;
+      var priority = taskForm.querySelector('select[name=priority]').value;
+      var due = taskForm.querySelector('input[name=due]').value;
+      addTask(text, priority, due);
+      taskForm.querySelector('input[name=text]').value = '';
+      taskForm.querySelector('input[name=due]').value = '';
+      return;
+    }
+    var commentForm = e.target.closest('form[data-form="add-comment"]');
+    if (commentForm) {
+      e.preventDefault();
+      var taskId = commentForm.getAttribute('data-task-id');
+      var ta = commentForm.querySelector('textarea[name=comment]');
+      addComment(taskId, ta.value);
+      return;
+    }
+    var editForm = e.target.closest('form[data-form="edit-comment"]');
+    if (editForm) {
+      e.preventDefault();
+      var eTaskId = editForm.getAttribute('data-task-id');
+      var eCommentId = editForm.getAttribute('data-comment-id');
+      var eTa = editForm.querySelector('textarea[name=comment]');
+      saveEditComment(eTaskId, eCommentId, eTa.value);
+      return;
+    }
   });
 
   // ---- cloud sync ---------------------------------------------------
@@ -1145,19 +1357,39 @@ function showTab(name) {
   // document, so first-time sync doubles as migration: an empty cloud copy
   // just falls back to whatever is already in this browser, and the first
   // save pushes it up.
+  //
+  // IMPORTANT: pushes to the cloud are gated behind `cloudSyncArmed`, which
+  // only becomes true once the initial cloud read has *confirmed* either
+  // real data or a genuinely empty document — never on a read that merely
+  // failed. Without this gate, a signed-in load on a new device that hits a
+  // transient read error (offline blip, rules not yet propagated, etc.)
+  // would look identical to "nothing saved yet", and the very next local
+  // write would silently overwrite the real cloud data with whatever this
+  // fresh device happens to have (usually nothing). That mechanism is what
+  // caused previously-synced data to appear to "reset" on other devices.
+  var cloudSyncArmed = false;
+
   async function hydrateFromCloud() {
-    if (!window.Cloud) return;
+    if (!window.Cloud) { cloudSyncArmed = true; return; }
     var uid = await Cloud.ready;
-    if (!uid) return;
-    var cloudData = await Cloud.getItem('daily-tasks');
-    if (cloudData && typeof cloudData === 'object') {
-      Object.keys(cloudData).forEach(function (k) {
-        storageSet(k, JSON.stringify(cloudData[k]));
+    if (!uid) { cloudSyncArmed = true; return; } // not signed in: local-only is expected
+    var result = await Cloud.getItemSafe('daily-tasks');
+    if (!result.ok) {
+      // Read failed — do NOT arm pushes this session. The app keeps working
+      // from local storage, and the cloud copy is left untouched until a
+      // future successful load can safely reconcile it.
+      cloudSyncArmed = false;
+      return;
+    }
+    if (result.value && typeof result.value === 'object') {
+      Object.keys(result.value).forEach(function (k) {
+        storageSet(k, JSON.stringify(result.value[k]));
       });
     }
+    cloudSyncArmed = true;
   }
   function pushToCloud() {
-    if (!window.Cloud) return;
+    if (!window.Cloud || !cloudSyncArmed) return;
     var snapshot = {};
     Object.keys(localStorage).filter(function (k) { return k.indexOf('worktasks:') === 0; })
       .forEach(function (k) {
@@ -1195,15 +1427,34 @@ const CATEGORIES = ["Technical","Scope","Resource","Budget","Vendor","Risk/Exter
 const STATUSES = ["Open","In Progress","Pending Approval","Closed"];
 const PRIORITIES = ["P1 (Urgent)","P2 (High)","P3 (Normal)","P4 (Low)"];
 
+// Only allow pushes to the cloud once a load has confirmed (rather than
+// merely failed to find) what's actually there — see the matching comment
+// in the Daily Tasks module for why this matters. Without this guard, a
+// signed-in device whose initial read errors out (offline blip, rules not
+// yet propagated) would fall back to local/sample data and, on the very
+// next edit, overwrite the real synced issue log with it.
+let issuesCloudSyncArmed = false;
+
 async function loadState() {
   try {
     let loadedFromCloud = false;
     if (window.Cloud) {
       const uid = await Cloud.ready;
       if (uid) {
-        const cloudIssues = await Cloud.getItem('issues');
-        if (cloudIssues) { issues = cloudIssues; loadedFromCloud = true; }
+        const result = await Cloud.getItemSafe('issues');
+        if (result.ok) {
+          issuesCloudSyncArmed = true;
+          if (result.value) { issues = result.value; loadedFromCloud = true; }
+        } else {
+          // Read failed: stay unarmed so we never push over real cloud data
+          // this session, and fall through to whatever is cached locally.
+          issuesCloudSyncArmed = false;
+        }
+      } else {
+        issuesCloudSyncArmed = true; // not signed in: local-only is expected
       }
+    } else {
+      issuesCloudSyncArmed = true; // cloud sync not configured: local-only
     }
     if (!loadedFromCloud) {
       const raw = localStorage.getItem('issue-log-state');
@@ -1218,7 +1469,7 @@ async function loadState() {
 async function saveState() {
   try { localStorage.setItem('issue-log-state', JSON.stringify(issues)); }
   catch(e) { console.error('Failed to save data:', e); alert('Could not save your data. Your browser storage may be full or disabled.'); }
-  if (window.Cloud) Cloud.scheduleSave('issues', () => issues, 500);
+  if (window.Cloud && issuesCloudSyncArmed) Cloud.scheduleSave('issues', () => issues, 500);
 }
 
 function seedExample() {
@@ -1737,6 +1988,38 @@ let plans = [
   ])),
 ];
 
+// ---------- local persistence (issue 1: works even without Firebase) ----
+// The planner previously had no storage layer of its own — it only ever
+// synced through Firebase, so anyone not signed in (or without Firestore
+// configured) lost every plan and person on refresh. This mirrors the
+// pattern already used by the Daily Tasks and Issue Log modules.
+const PLANNER_PLANS_KEY = "planner-plans-v1";
+const PLANNER_PEOPLE_KEY = "planner-people-v1";
+
+function plLoadLocal() {
+  try {
+    const rawPlans = localStorage.getItem(PLANNER_PLANS_KEY);
+    const rawPeople = localStorage.getItem(PLANNER_PEOPLE_KEY);
+    if (rawPlans) {
+      const parsed = JSON.parse(rawPlans);
+      if (Array.isArray(parsed) && parsed.length) plans = parsed;
+    }
+    if (rawPeople) {
+      const parsed = JSON.parse(rawPeople);
+      if (Array.isArray(parsed)) people = parsed;
+    }
+  } catch (e) { console.error("Planner: failed to read local storage", e); }
+}
+plLoadLocal();
+
+function plSaveLocal() {
+  try {
+    localStorage.setItem(PLANNER_PLANS_KEY, JSON.stringify(plans));
+    localStorage.setItem(PLANNER_PEOPLE_KEY, JSON.stringify(people));
+    return true;
+  } catch (e) { console.error("Planner: failed to save to local storage", e); return false; }
+}
+
 let currentPlanId = plans[0].id;
 let currentView = "board";
 let query = "";
@@ -2144,31 +2427,54 @@ function renderCharts() {
     </div>`;
 }
 
+// Cloud pushes are gated behind this flag, which only flips true once the
+// initial cloud read has confirmed what's actually stored server-side
+// (whether that's real data or a genuinely empty account) — never on a
+// read that simply failed. See the matching comment in the Daily Tasks
+// module: without this guard, a signed-in load on a new device that hits a
+// transient read error looks identical to "nothing saved yet", and the
+// very next render would silently overwrite real cloud data with local
+// defaults. Local storage is unaffected by this flag and always saves.
+let plCloudSyncArmed = false;
+
 // ---------- top-level render ----------
 function plRenderAll() {
   renderPlanSelect();
   if (currentView === "board") renderBoard(); else renderCharts();
-  if (window.Cloud) {
+  plSaveLocal();
+  if (window.Cloud && plCloudSyncArmed) {
     Cloud.scheduleSave('planner-plans', () => plans);
     Cloud.scheduleSave('planner-people', () => people);
   }
 }
 
 // First-ever cloud load has nothing saved yet, so this naturally falls back
-// to the sample data already in `plans`/`people` above and migrates it up
-// on the very next save — no separate migration step needed.
+// to whatever's in local storage (or the sample data on a brand-new
+// browser) and migrates it up on the very next save — no separate
+// migration step needed.
 (async function initPlanner() {
   if (window.Cloud) {
     const uid = await Cloud.ready;
     if (uid) {
-      const cloudPlans = await Cloud.getItem('planner-plans');
-      const cloudPeople = await Cloud.getItem('planner-people');
-      if (cloudPlans && cloudPlans.length) plans = cloudPlans;
-      if (cloudPeople) people = cloudPeople;
-      if (!plans.find(p => p.id === currentPlanId) && plans[0]) {
-        currentPlanId = plans[0].id;
+      const plansResult = await Cloud.getItemSafe('planner-plans');
+      const peopleResult = await Cloud.getItemSafe('planner-people');
+      if (plansResult.ok && peopleResult.ok) {
+        if (plansResult.value && plansResult.value.length) plans = plansResult.value;
+        if (peopleResult.value) people = peopleResult.value;
+        if (!plans.find(p => p.id === currentPlanId) && plans[0]) {
+          currentPlanId = plans[0].id;
+        }
+        plCloudSyncArmed = true;
       }
+      // If either read failed, leave plCloudSyncArmed false: the planner
+      // keeps working from local storage, and nothing gets pushed to
+      // Firestore (and possibly clobber real data) until a future load
+      // succeeds.
+    } else {
+      plCloudSyncArmed = true; // not signed in: local-only sync is expected
     }
+  } else {
+    plCloudSyncArmed = true; // cloud sync not configured: local-only
   }
   plRenderAll();
 })();
