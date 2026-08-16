@@ -4132,7 +4132,7 @@ function clearDebugLog() { DebugLog.clear(); }
     getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
   import {
-    getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
+    getAuth, onAuthStateChanged, GoogleAuthProvider,
     signInWithRedirect, getRedirectResult,
     signInWithEmailAndPassword, signOut, setPersistence,
     browserLocalPersistence, browserSessionPersistence
@@ -4324,19 +4324,14 @@ function clearDebugLog() { DebugLog.clear(); }
     if (!auth) throw new Error('auth/not-configured');
     await setRememberedSession(true);
     const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      // Do NOT reload. The auth listener is the single source of truth.
-    } catch (err) {
-      // Popups are blocked outright by some mobile browsers and in-app
-      // webviews (rather than throwing a one-off "blocked" error), so treat
-      // both known codes as a signal to fall back to a full-page redirect.
-      if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      throw err;
-    }
+    // Popup-based sign-in polls `popup.closed` to detect completion, and
+    // Chrome's default Cross-Origin-Opener-Policy silently blocks that read
+    // on most hosts (no thrown error — the flow just hangs after the user
+    // finishes signing in). Redirect doesn't depend on that mechanism, so
+    // it's used unconditionally rather than as a fallback.
+    await signInWithRedirect(auth, provider);
+    // Execution ends here: the page navigates away. On return,
+    // getRedirectResult() below (or onAuthStateChanged) completes sign-in.
   }
 
   // If we just came back from a redirect-based sign-in, surface any error
