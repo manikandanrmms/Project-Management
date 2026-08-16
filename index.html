@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Management</title>
@@ -4133,29 +4134,20 @@ function clearDebugLog() { DebugLog.clear(); }
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
   import {
     getAuth, onAuthStateChanged, GoogleAuthProvider,
-    signInWithRedirect, getRedirectResult,
+    signInWithPopup, signInWithRedirect, getRedirectResult,
     signInWithEmailAndPassword, signOut, setPersistence,
     browserLocalPersistence, browserSessionPersistence
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
-  // ====== PASTE YOUR OWN FIREBASE CONFIG HERE ======
+  // ====== Firebase configuration ======
   const firebaseConfig = {
-
-  apiKey: "AIzaSyAiUAqyW-zeaclaJ96LDNo8G1BeEeG6hBs",
-
-  authDomain: "project-management-29ee0.firebaseapp.com",
-
-  projectId: "project-management-29ee0",
-
-  storageBucket: "project-management-29ee0.firebasestorage.app",
-
-  messagingSenderId: "215394813379",
-
-  appId: "1:215394813379:web:ac870218a2fdc3d2522976"
-
-};
-
-  // ===================================================
+    apiKey: "AIzaSyAiUAqyW-zeaclaJ96LDNo8G1BeEeG6hBs",
+    authDomain: "project-management-29ee0.firebaseapp.com",
+    projectId: "project-management-29ee0",
+    storageBucket: "project-management-29ee0.firebasestorage.app",
+    messagingSenderId: "215394813379",
+    appId: "1:215394813379:web:ac870218a2fdc3d2522976"
+  };
 
   const isConfigured = !!(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_"));
 
@@ -4168,8 +4160,47 @@ function clearDebugLog() { DebugLog.clear(); }
     }
   }
 
-  let db = null, auth = null, currentUid = null, readyResolve;
+  let db = null;
+  let auth = null;
+  let currentUid = null;
+  let authStateResolved = false;
+  let authEventDispatchedUid = '__initializing__';
+  let readyResolve;
   const readyPromise = new Promise(res => { readyResolve = res; });
+
+  function dispatchAuthState(user) {
+    const uid = user ? user.uid : null;
+    // Avoid duplicate auth events during Google popup/redirect completion.
+    if (authStateResolved && authEventDispatchedUid === uid) return;
+
+    currentUid = uid;
+    authEventDispatchedUid = uid;
+    authStateResolved = true;
+
+    if (user) {
+      setStatus('Synced — signed in', true);
+      const banner = document.getElementById('cloud-banner');
+      if (banner) banner.style.display = 'none';
+      if (window.DebugLog) {
+        DebugLog.finish(DebugLog.start('AUTH', user.email || '(no email)'), true, 'uid: ' + user.uid);
+      }
+      readyResolve(user.uid);
+      window.dispatchEvent(new CustomEvent('firebase-auth-changed', {
+        detail: { uid: user.uid, email: user.email || '' }
+      }));
+    } else {
+      setStatus('Sign in to sync', false);
+      const banner = document.getElementById('cloud-banner');
+      if (banner) banner.style.display = 'block';
+      if (window.DebugLog) {
+        DebugLog.finish(DebugLog.start('AUTH', '(signed out)'), true, 'no user');
+      }
+      readyResolve(null);
+      window.dispatchEvent(new CustomEvent('firebase-auth-changed', {
+        detail: { uid: null }
+      }));
+    }
+  }
 
   if (isConfigured) {
     try {
@@ -4177,55 +4208,38 @@ function clearDebugLog() { DebugLog.clear(); }
       db = getFirestore(app);
       auth = getAuth(app);
 
+      // IMPORTANT: do not treat the first transient null state as a logout.
+      // Firebase must finish restoring its persisted session first.
       onAuthStateChanged(auth, (user) => {
-        if (user) {
-          currentUid = user.uid;
-          setStatus('Synced — signed in', true);
-          const banner = document.getElementById('cloud-banner');
-          if (banner) banner.style.display = 'none';
-          if (window.DebugLog) DebugLog.finish(DebugLog.start('AUTH', user.email || '(no email)'), true, 'uid: ' + user.uid);
-          readyResolve(currentUid);
-          window.dispatchEvent(new CustomEvent('firebase-auth-changed', {
-            detail: { uid: user.uid, email: user.email || '' }
-          }));
-        } else {
-          currentUid = null;
-          setStatus('Sign in to sync', false);
-          const banner = document.getElementById('cloud-banner');
-          if (banner) banner.style.display = 'block';
-          if (window.DebugLog) DebugLog.finish(DebugLog.start('AUTH', '(signed out)'), true, 'no user');
-          readyResolve(null);
-          window.dispatchEvent(new CustomEvent('firebase-auth-changed', {
-            detail: { uid: null }
-          }));
-        }
+        dispatchAuthState(user);
       });
 
-      // No Anonymous Authentication is used.
-      // The user signs in with Google when they click the Sign in button.
+      // Complete a Google redirect if the browser has returned from one.
+      // This is deliberately handled independently of the first null auth event.
+      getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+          dispatchAuthState(result.user);
+        }
+      }).catch((err) => {
+        console.error('Google redirect sign-in failed:', err);
+        window.dispatchEvent(new CustomEvent('google-redirect-error', { detail: { err } }));
+      });
     } catch (err) {
       console.error('Firebase init failed:', err);
-      setStatus('Cloud sync not configured', false);
+      setStatus('Cloud sync not configured', false, true);
       const banner = document.getElementById('cloud-banner');
       if (banner) banner.style.display = 'block';
+      authStateResolved = true;
       readyResolve(null);
     }
   } else {
-    setStatus('Cloud sync not configured', false);
+    setStatus('Cloud sync not configured', false, true);
     const banner = document.getElementById('cloud-banner');
     if (banner) banner.style.display = 'block';
+    authStateResolved = true;
     readyResolve(null);
   }
 
-  // getItemSafe() is the load-time primitive every module should use.
-  // It NEVER collapses "no document saved yet" and "the read failed" into
-  // the same falsy value the way the old getItem() did — that conflation
-  // was the root cause of data appearing to "reset" on a new browser: a
-  // transient read error (rules not yet propagated, offline blip, etc.)
-  // looked identical to "brand-new user", so the caller would fall back to
-  // local/sample data and then immediately re-save it to Firestore,
-  // overwriting the real cloud copy. Callers must only treat the result as
-  // safe to act on (and safe to save back over) when `ok` is true.
   async function getItemSafe(key) {
     if (!db || !currentUid) return { ok: true, exists: false, value: null };
     var logId = window.DebugLog && DebugLog.start('READ', key);
@@ -4242,9 +4256,6 @@ function clearDebugLog() { DebugLog.clear(); }
     }
   }
 
-  // Back-compat plain-value accessor for any caller that doesn't need to
-  // distinguish "no data" from "read failed". Prefer getItemSafe() for any
-  // load path whose result might later be written back to the cloud.
   async function getItem(key) {
     const r = await getItemSafe(key);
     return r.value;
@@ -4285,11 +4296,6 @@ function clearDebugLog() { DebugLog.clear(); }
     saveTimers[key] = setTimeout(() => setItem(key, valueFn()), delay || 800);
   }
 
-  // Explicit browser persistence: "Remember me" uses local persistence;
-  // unselected uses session persistence. No password or token is stored by this page.
-  let authPersistenceReady = Promise.resolve();
-  let authInitialized = false;
-
   async function setRememberedSession(remember) {
     if (!auth) throw new Error('auth/not-configured');
     await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
@@ -4306,10 +4312,10 @@ function clearDebugLog() { DebugLog.clear(); }
     if (code === 'auth/network-request-failed') return 'We could not reach the authentication service. Check your internet connection and try again.';
     if (code === 'auth/operation-not-allowed') return 'Email and password sign-in is not enabled for this application yet.';
     if (code === 'auth/popup-blocked') return 'The Google sign-in window was blocked. Allow pop-ups for this site and try again.';
-    if (code === 'auth/popup-closed-by-user') return '';
-    if (code === 'auth/cancelled-popup-request') return '';
-    if (code === 'auth/account-exists-with-different-credential') return 'An account already exists with this email using a different sign-in method. Try signing in with your password instead.';
-    if (code === 'auth/unauthorized-domain') return 'This domain is not authorized for sign-in yet. Please contact the app administrator.';
+    if (code === 'auth/popup-closed-by-user') return 'The Google sign-in window was closed before authentication completed.';
+    if (code === 'auth/cancelled-popup-request') return 'The Google sign-in request was cancelled. Please try again.';
+    if (code === 'auth/account-exists-with-different-credential') return 'An account already exists with this email using a different sign-in method. Try the other sign-in method.';
+    if (code === 'auth/unauthorized-domain') return 'This website is not authorized for Firebase sign-in yet. Add the GitHub Pages domain in Firebase Authentication settings.';
     return 'We could not sign you in right now. Please try again.';
   }
 
@@ -4317,49 +4323,44 @@ function clearDebugLog() { DebugLog.clear(); }
     if (!auth) throw new Error('auth/not-configured');
     await setRememberedSession(remember);
     await signInWithEmailAndPassword(auth, email, password);
-    // Do NOT reload. onAuthStateChanged drives the UI transition and hydration.
   }
 
   async function signInGoogle() {
     if (!auth) throw new Error('auth/not-configured');
     await setRememberedSession(true);
     const provider = new GoogleAuthProvider();
-    // Popup-based sign-in polls `popup.closed` to detect completion, and
-    // Chrome's default Cross-Origin-Opener-Policy silently blocks that read
-    // on most hosts (no thrown error — the flow just hangs after the user
-    // finishes signing in). Redirect doesn't depend on that mechanism, so
-    // it's used unconditionally rather than as a fallback.
-    await signInWithRedirect(auth, provider);
-    // Execution ends here: the page navigates away. On return,
-    // getRedirectResult() below (or onAuthStateChanged) completes sign-in.
-  }
+    provider.setCustomParameters({ prompt: 'select_account' });
 
-  // If we just came back from a redirect-based sign-in, surface any error
-  // (the success case is already handled by onAuthStateChanged above).
-  if (isConfigured) {
-    readyPromise.then(function () {
-      if (!auth) return;
-      getRedirectResult(auth).catch(function (err) {
-        console.error('Google redirect sign-in failed:', err);
-        window.dispatchEvent(new CustomEvent('google-redirect-error', { detail: { err: err } }));
-      });
-    });
+    // GitHub Pages is not Firebase Hosting. Firebase documents popup sign-in
+    // as an option for apps hosted by another service, while redirect sign-in
+    // can require additional same-origin auth-helper hosting on modern browsers.
+    const result = await signInWithPopup(auth, provider);
+    if (result && result.user) dispatchAuthState(result.user);
   }
 
   async function signOutUser() {
     if (!auth) return;
     await signOut(auth);
-    // onAuthStateChanged returns the user to the login gate immediately.
   }
 
-  // Expose the live auth state as well as the initial ready promise.  This
-  // prevents modules that start before Firebase Auth finishes restoring the
-  // session from permanently seeing the initial null value.
   function getCurrentUid() { return currentUid; }
+  function isAuthReady() { return authStateResolved; }
+
   window.Cloud = {
-    ready: readyPromise, getCurrentUid, getItem, getItemSafe, setItem, deleteItem,
-    scheduleSave, signInGoogle, signInEmail, signOutUser, friendlyAuthError,
-    isConfigured, setRememberedSession
+    ready: readyPromise,
+    getCurrentUid,
+    isAuthReady,
+    getItem,
+    getItemSafe,
+    setItem,
+    deleteItem,
+    scheduleSave,
+    signInGoogle,
+    signInEmail,
+    signOutUser,
+    friendlyAuthError,
+    isConfigured,
+    setRememberedSession
   };
 </script>
 
@@ -4372,12 +4373,14 @@ function clearDebugLog() { DebugLog.clear(); }
   var loadingEl=document.getElementById('authLoading'), submitEl=document.getElementById('loginSubmit');
   var googleEl=document.getElementById('googleSignIn'), toggleEl=document.getElementById('togglePassword');
   var emailError=document.getElementById('loginEmailError'), passwordError=document.getElementById('loginPasswordError');
+  var authControllerReady=false;
 
-  function showGate(){
-    document.body.classList.add('auth-gate-active','auth-booting');
+  function showGate(message){
+    document.body.classList.add('auth-gate-active');
     gate.classList.add('active'); gate.setAttribute('aria-hidden','false');
     loadingEl.classList.remove('active'); submitEl.disabled=false; googleEl.disabled=false;
     submitEl.textContent='Sign in';
+    if(message) setStatus(message,'error');
   }
   function hideGate(){
     loadingEl.classList.add('active'); gate.classList.add('active'); gate.setAttribute('aria-hidden','false');
@@ -4428,7 +4431,7 @@ function clearDebugLog() { DebugLog.clear(); }
     }catch(err){
       console.error('Email sign-in failed:',err); setBusy(false);
       var msg=(window.Cloud&&window.Cloud.friendlyAuthError)?window.Cloud.friendlyAuthError(err):'We could not sign you in right now. Please try again.';
-      setStatus(msg);
+      setStatus(msg,'error');
     }
   });
 
@@ -4441,15 +4444,8 @@ function clearDebugLog() { DebugLog.clear(); }
     }catch(err){
       console.error('Google sign-in failed:',err); setBusy(false);
       var msg=(window.Cloud&&window.Cloud.friendlyAuthError)?window.Cloud.friendlyAuthError(err):'We could not sign you in with Google. Please try again.';
-      if(msg)setStatus(msg);
+      setStatus(msg||'Google sign-in did not complete. Please try again.','error');
     }
-  });
-
-  window.addEventListener('google-redirect-error',function(e){
-    setBusy(false);
-    var err=(e.detail&&e.detail.err)||{};
-    var msg=(window.Cloud&&window.Cloud.friendlyAuthError)?window.Cloud.friendlyAuthError(err):'We could not sign you in with Google. Please try again.';
-    if(msg)setStatus(msg);
   });
 
   window.addEventListener('firebase-auth-changed',function(e){
@@ -4457,24 +4453,38 @@ function clearDebugLog() { DebugLog.clear(); }
     if(detail.uid){
       var label=document.getElementById('auth-user-label'); if(label)label.textContent=detail.email||'Signed in';
       setBusy(true,'Loading your workspace…'); hideGate();
-    }else{
-      showGate(); setStatus(''); emailEl.focus();
+    }else if(authControllerReady){
+      // Only show login after Firebase has definitely finished restoring auth.
+      showGate(); setStatus('Please sign in to continue.','info');
     }
   });
 
-  (function waitForInitialAuth(){
-    var started=Date.now();
-    (function poll(){
-      if(window.Cloud&&typeof window.Cloud.getCurrentUid==='function'){
-        var uid=window.Cloud.getCurrentUid();
-        if(uid){
-          var label=document.getElementById('auth-user-label'); if(label)label.textContent='Signed in';
-          hideGate(); return;
-        }
-        if(Date.now()-started>1500){showGate();return;}
+  // Wait for Firebase's INITIAL auth decision. Never infer "logged out"
+  // from a temporary null value during SDK startup/redirect processing.
+  (async function initializeAuthGate(){
+    document.body.classList.add('auth-booting','auth-gate-active');
+    try{
+      var Cloud=await window.waitForCloud(15000);
+      if(!Cloud||!Cloud.isConfigured){
+        authControllerReady=true;
+        showGate('Authentication is not configured for this deployment.');
+        return;
       }
-      if(Date.now()-started<15000)setTimeout(poll,50);else showGate();
-    })();
+
+      var uid=await Cloud.ready;
+      authControllerReady=true;
+      if(uid){
+        var label=document.getElementById('auth-user-label'); if(label)label.textContent='Signed in';
+        setBusy(true,'Loading your workspace…'); hideGate();
+      }else{
+        showGate();
+        setStatus('Please sign in to continue.','info');
+      }
+    }catch(err){
+      console.error('Initial authentication check failed:',err);
+      authControllerReady=true;
+      showGate('We could not verify your session. Please sign in again.');
+    }
   })();
 })();
 </script>
