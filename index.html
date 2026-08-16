@@ -3399,9 +3399,239 @@ body{
   outline-offset:2px;
 }
 
+
+/* =========================================================
+   AUTHENTICATION GATE — FRONT-FACING ENTRY
+   Firebase Email/Password + Google fallback
+   ========================================================= */
+body.auth-gate-active > .shell-header,
+body.auth-gate-active > .cloud-banner,
+body.auth-gate-active > .debug-panel,
+body.auth-gate-active > .shell-main{
+  display:none !important;
+}
+#auth-gate{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:none;
+  overflow:auto;
+  padding:28px;
+  color:#292A3D;
+  background:
+    radial-gradient(900px 520px at 8% 8%,rgba(102,87,200,.18),transparent 60%),
+    radial-gradient(780px 500px at 92% 12%,rgba(233,107,145,.14),transparent 58%),
+    linear-gradient(135deg,#F8F8FC 0%,#F1F0FA 52%,#F8F5F8 100%);
+}
+#auth-gate.active{display:flex;align-items:center;justify-content:center;}
+.auth-shell{
+  width:min(1060px,100%);
+  min-height:min(690px,calc(100vh - 56px));
+  display:grid;
+  grid-template-columns:1.05fr .95fr;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:28px;
+  background:rgba(255,255,255,.78);
+  box-shadow:0 30px 90px rgba(58,51,105,.18);
+  backdrop-filter:blur(24px);
+}
+.auth-showcase{
+  position:relative;
+  padding:54px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  color:#fff;
+  overflow:hidden;
+  background:
+    radial-gradient(420px 280px at 15% 10%,rgba(255,255,255,.18),transparent 60%),
+    radial-gradient(480px 320px at 90% 90%,rgba(255,255,255,.12),transparent 65%),
+    linear-gradient(145deg,#5B4BC4,#7466D3 48%,#9A6B98);
+}
+.auth-showcase::before,
+.auth-showcase::after{
+  content:"";
+  position:absolute;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:50%;
+  pointer-events:none;
+}
+.auth-showcase::before{width:420px;height:420px;right:-190px;top:-150px;}
+.auth-showcase::after{width:520px;height:520px;left:-310px;bottom:-280px;}
+.auth-brand{position:relative;z-index:1;display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:-.02em;}
+.auth-brand-mark{
+  width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 8px 20px rgba(28,20,73,.16);font-size:14px;
+}
+.auth-copy{position:relative;z-index:1;max-width:500px;}
+.auth-kicker{
+  margin:0 0 14px;text-transform:uppercase;letter-spacing:.16em;font-size:11px;
+  font-weight:700;color:rgba(255,255,255,.68);
+}
+.auth-title{margin:0;font-size:clamp(34px,4.5vw,58px);line-height:1.02;letter-spacing:-.045em;font-weight:700;}
+.auth-subtitle{margin:20px 0 0;max-width:470px;font-size:15px;line-height:1.7;color:rgba(255,255,255,.76);}
+.auth-feature-row{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;}
+.auth-feature{
+  padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.14);font-size:11px;color:rgba(255,255,255,.82);
+}
+.auth-card{
+  display:flex;align-items:center;justify-content:center;padding:48px;
+  background:rgba(255,255,255,.88);
+}
+.auth-form-wrap{width:min(390px,100%);}
+.auth-form-head{margin-bottom:28px;}
+.auth-form-head h2{margin:0 0 8px;font-size:29px;letter-spacing:-.035em;color:#292A3D;}
+.auth-form-head p{margin:0;color:#7B7C8D;font-size:13.5px;line-height:1.6;}
+.auth-field{margin-bottom:17px;}
+.auth-field label{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:12px;font-weight:700;color:#4E5064;}
+.auth-input-wrap{position:relative;}
+.auth-input{
+  width:100%;height:48px;padding:0 14px;border:1px solid #E1E1EB;border-radius:12px;
+  background:#FAFAFD;color:#292A3D;font:500 14px 'IBM Plex Sans','Segoe UI',sans-serif;
+  outline:none;transition:border-color .18s,box-shadow .18s,background .18s;
+}
+.auth-input.password{padding-right:48px;}
+.auth-input:focus{border-color:#7768D6;background:#fff;box-shadow:0 0 0 4px rgba(102,87,200,.10);}
+.auth-input.invalid{border-color:#D95F72;background:#FFF9FA;box-shadow:0 0 0 3px rgba(217,95,114,.08);}
+.auth-input.valid{border-color:#67B58E;}
+.auth-error{display:none;margin-top:6px;font-size:11.5px;color:#C45163;line-height:1.45;}
+.auth-error.show{display:block;}
+.auth-toggle-password{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);height:34px;padding:0 9px;
+  border:0;border-radius:8px;background:transparent;color:#7B7C8D;cursor:pointer;font-size:11px;font-weight:700;
+}
+.auth-toggle-password:hover{background:#F0EFF8;color:#5143A8;}
+.auth-options{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 20px;}
+.auth-remember{display:flex;align-items:center;gap:8px;font-size:12px;color:#67697A;cursor:pointer;}
+.auth-remember input{width:15px;height:15px;accent-color:#6657C8;cursor:pointer;}
+.auth-submit{
+  width:100%;height:50px;border:0;border-radius:13px;color:#fff;background:linear-gradient(135deg,#6657C8,#7D6DE0);
+  font:700 13.5px 'IBM Plex Sans','Segoe UI',sans-serif;cursor:pointer;
+  box-shadow:0 10px 22px rgba(102,87,200,.22);transition:transform .18s,box-shadow .18s,opacity .18s;
+}
+.auth-submit:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 13px 28px rgba(102,87,200,.28);}
+.auth-submit:disabled{opacity:.65;cursor:not-allowed;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#A0A1AE;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;}
+.auth-divider::before,.auth-divider::after{content:"";height:1px;flex:1;background:#E9E9F0;}
+.auth-google{
+  width:100%;height:46px;border:1px solid #E1E1EB;border-radius:12px;background:#fff;color:#3F4050;
+  font:700 12.5px 'IBM Plex Sans','Segoe UI',sans-serif;cursor:pointer;
+}
+.auth-google:hover{background:#FAFAFD;border-color:#D7D5E6;}
+.auth-status{
+  display:none;margin:0 0 16px;padding:11px 12px;border-radius:10px;font-size:12px;line-height:1.45;
+  border:1px solid #E7D4D8;background:#FFF6F8;color:#A84558;
+}
+.auth-status.show{display:block;}
+.auth-status.info{border-color:#DAD6F2;background:#F7F5FF;color:#5A4BAF;}
+.auth-loading{
+  display:none;position:absolute;inset:0;background:rgba(248,248,252,.72);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;z-index:2;
+}
+.auth-loading.active{display:flex;}
+.auth-loading-card{
+  width:min(360px,calc(100% - 40px));padding:22px;border-radius:16px;background:#fff;
+  border:1px solid #E9E8F0;box-shadow:0 18px 45px rgba(47,43,88,.12);
+}
+.auth-loading-line{height:10px;border-radius:999px;background:#ECECF3;margin:10px 0;overflow:hidden;position:relative;}
+.auth-loading-line::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);
+  animation:authShimmer 1.2s infinite;
+}
+.auth-loading-title{height:15px;width:55%;border-radius:999px;background:#E7E6EF;margin-bottom:17px;}
+@keyframes authShimmer{to{transform:translateX(100%);}}
+.auth-session-pill{margin-top:18px;font-size:10.5px;color:#9293A1;text-align:center;}
+body.auth-booting{overflow:hidden;}
+@media(max-width:800px){
+  #auth-gate{padding:14px;}
+  .auth-shell{grid-template-columns:1fr;min-height:auto;border-radius:22px;}
+  .auth-showcase{padding:32px;min-height:310px;}
+  .auth-copy{margin-top:30px;}
+  .auth-title{font-size:38px;}
+  .auth-card{padding:32px 24px;}
+}
+@media(max-width:480px){
+  .auth-showcase{padding:26px;min-height:270px;}
+  .auth-card{padding:28px 18px;}
+  .auth-feature-row{display:none;}
+}
+
 </style>
 </head>
-<body>
+<body class="auth-booting auth-gate-active">
+<div id="auth-gate" class="active" aria-hidden="false">
+  <div class="auth-shell">
+    <section class="auth-showcase" aria-label="Application introduction">
+      <div class="auth-brand"><span class="auth-brand-mark">PM</span><span>Project Management</span></div>
+      <div class="auth-copy">
+        <p class="auth-kicker">Secure workspace</p>
+        <h1 class="auth-title">Plan. Track.<br>Deliver.</h1>
+        <p class="auth-subtitle">A unified workspace for project planning, issue management, daily execution and cloud-synced work.</p>
+      </div>
+      <div class="auth-feature-row">
+        <span class="auth-feature">Cloud synced</span>
+        <span class="auth-feature">Secure authentication</span>
+        <span class="auth-feature">Cross-device access</span>
+      </div>
+    </section>
+
+    <section class="auth-card">
+      <form class="auth-form-wrap" id="loginForm" novalidate>
+        <div class="auth-form-head">
+          <h2>Welcome back</h2>
+          <p>Sign in to continue to your project workspace.</p>
+        </div>
+
+        <div class="auth-status" id="authStatus" role="alert" aria-live="polite"></div>
+
+        <div class="auth-field">
+          <label for="loginEmail">Email address</label>
+          <div class="auth-input-wrap">
+            <input class="auth-input" id="loginEmail" name="email" type="email" inputmode="email"
+                   autocomplete="username" placeholder="you@example.com" required>
+          </div>
+          <div class="auth-error" id="loginEmailError"></div>
+        </div>
+
+        <div class="auth-field">
+          <label for="loginPassword">Password</label>
+          <div class="auth-input-wrap">
+            <input class="auth-input password" id="loginPassword" name="password" type="password"
+                   autocomplete="current-password" placeholder="Enter your password" required minlength="6">
+            <button class="auth-toggle-password" type="button" id="togglePassword">Show</button>
+          </div>
+          <div class="auth-error" id="loginPasswordError"></div>
+        </div>
+
+        <div class="auth-options">
+          <label class="auth-remember"><input type="checkbox" id="rememberMe" checked> Remember me</label>
+          <span style="font-size:11px;color:#A0A1AE;">Trusted device only</span>
+        </div>
+
+        <button class="auth-submit" id="loginSubmit" type="submit">Sign in</button>
+
+        <div class="auth-divider">or</div>
+        <button class="auth-google" type="button" id="googleSignIn">Continue with Google</button>
+        <div class="auth-session-pill">Your session is restored automatically when you return.</div>
+      </form>
+    </section>
+  </div>
+
+  <div class="auth-loading" id="authLoading" aria-hidden="true">
+    <div class="auth-loading-card">
+      <div class="auth-loading-title"></div>
+      <div class="auth-loading-line"></div>
+      <div class="auth-loading-line"></div>
+      <div class="auth-loading-line"></div>
+      <div style="margin-top:16px;font-size:12px;color:#77798A;text-align:center;">Loading your workspace…</div>
+    </div>
+  </div>
+</div>
+
 
 <header class="shell-header">
   <div class="shell-brand">
@@ -3432,15 +3662,16 @@ body{
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
       Sync log
     </button>
-    <button class="shell-tab" onclick="Cloud.signInGoogle()" title="Sign in with Google to sync your data across devices">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Sign in
+    <span class="shell-tab" id="auth-user-label" style="cursor:default;" title="Signed-in account"></span>
+    <button class="shell-tab" id="logoutBtn" type="button" onclick="Cloud.signOutUser()" title="Sign out of this device">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 19V5a2 2 0 0 0-2-2h-6"/></svg>
+      Sign out
     </button>
   </div>
 </header>
 
 <div class="cloud-banner" id="cloud-banner" style="display:none;">
-  Sign in with Google to load and save your Daily Tasks in Firebase Cloud Firestore. <button type="button" onclick="Cloud.signInGoogle()" style="margin-left:8px;padding:5px 10px;border:1px solid rgba(255,255,255,.35);border-radius:6px;background:#fff;color:#1f2937;cursor:pointer;font-weight:600;">Sign in</button>
+  Cloud sync is temporarily unavailable. Your session is still active; retry when the connection is restored.
 </div>
 
 <div class="debug-panel" id="debug-panel">
@@ -3894,7 +4125,9 @@ function clearDebugLog() { DebugLog.clear(); }
     getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
   import {
-    getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup
+    getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
+    signInWithEmailAndPassword, signOut, setPersistence,
+    browserLocalPersistence, browserSessionPersistence
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
   // ====== PASTE YOUR OWN FIREBASE CONFIG HERE ======
@@ -4044,39 +4277,170 @@ function clearDebugLog() { DebugLog.clear(); }
     saveTimers[key] = setTimeout(() => setItem(key, valueFn()), delay || 800);
   }
 
+  // Explicit browser persistence: "Remember me" uses local persistence;
+  // unselected uses session persistence. No password or token is stored by this page.
+  let authPersistenceReady = Promise.resolve();
+  let authInitialized = false;
+
+  async function setRememberedSession(remember) {
+    if (!auth) throw new Error('auth/not-configured');
+    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+  }
+
+  function friendlyAuthError(err) {
+    const code = err && err.code ? err.code : '';
+    if (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' ||
+        code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+      return 'The email or password is incorrect. Please check your details and try again.';
+    }
+    if (code === 'auth/user-disabled') return 'This account is currently locked or disabled. Please contact an administrator.';
+    if (code === 'auth/too-many-requests') return 'Too many unsuccessful attempts. Please wait a few minutes and try again.';
+    if (code === 'auth/network-request-failed') return 'We could not reach the authentication service. Check your internet connection and try again.';
+    if (code === 'auth/operation-not-allowed') return 'Email and password sign-in is not enabled for this application yet.';
+    if (code === 'auth/popup-blocked') return 'The Google sign-in window was blocked. Allow pop-ups for this site and try again.';
+    if (code === 'auth/popup-closed-by-user') return '';
+    return 'We could not sign you in right now. Please try again.';
+  }
+
+  async function signInEmail(email, password, remember) {
+    if (!auth) throw new Error('auth/not-configured');
+    await setRememberedSession(remember);
+    await signInWithEmailAndPassword(auth, email, password);
+    // Do NOT reload. onAuthStateChanged drives the UI transition and hydration.
+  }
+
   async function signInGoogle() {
-    if (!auth) {
-      alert('Cloud sync is not configured yet. Please check the Firebase configuration in this file.');
-      return;
-    }
-
+    if (!auth) throw new Error('auth/not-configured');
+    await setRememberedSession(true);
     const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+    // Do NOT reload. The auth listener is the single source of truth.
+  }
 
-    try {
-      await signInWithPopup(auth, provider);
-      location.reload();
-    } catch (err) {
-      console.error('Google sign-in failed:', err);
-
-      if (err && err.code === 'auth/popup-closed-by-user') {
-        // The user closed the Google sign-in window. No action is needed.
-        return;
-      }
-
-      if (err && err.code === 'auth/popup-blocked') {
-        alert('Google sign-in was blocked by the browser. Please allow pop-ups for this site and try again.');
-        return;
-      }
-
-      alert('Google sign-in failed: ' + (err?.message || err));
-    }
+  async function signOutUser() {
+    if (!auth) return;
+    await signOut(auth);
+    // onAuthStateChanged returns the user to the login gate immediately.
   }
 
   // Expose the live auth state as well as the initial ready promise.  This
   // prevents modules that start before Firebase Auth finishes restoring the
   // session from permanently seeing the initial null value.
   function getCurrentUid() { return currentUid; }
-  window.Cloud = { ready: readyPromise, getCurrentUid, getItem, getItemSafe, setItem, deleteItem, scheduleSave, signInGoogle, isConfigured };
+  window.Cloud = {
+    ready: readyPromise, getCurrentUid, getItem, getItemSafe, setItem, deleteItem,
+    scheduleSave, signInGoogle, signInEmail, signOutUser, friendlyAuthError,
+    isConfigured, setRememberedSession
+  };
+</script>
+
+<script>
+/* ===== Front-facing authentication controller ===== */
+(function(){
+  var gate=document.getElementById('auth-gate'), form=document.getElementById('loginForm');
+  var emailEl=document.getElementById('loginEmail'), passwordEl=document.getElementById('loginPassword');
+  var rememberEl=document.getElementById('rememberMe'), statusEl=document.getElementById('authStatus');
+  var loadingEl=document.getElementById('authLoading'), submitEl=document.getElementById('loginSubmit');
+  var googleEl=document.getElementById('googleSignIn'), toggleEl=document.getElementById('togglePassword');
+  var emailError=document.getElementById('loginEmailError'), passwordError=document.getElementById('loginPasswordError');
+
+  function showGate(){
+    document.body.classList.add('auth-gate-active','auth-booting');
+    gate.classList.add('active'); gate.setAttribute('aria-hidden','false');
+    loadingEl.classList.remove('active'); submitEl.disabled=false; googleEl.disabled=false;
+    submitEl.textContent='Sign in';
+  }
+  function hideGate(){
+    loadingEl.classList.add('active'); gate.classList.add('active'); gate.setAttribute('aria-hidden','false');
+    setTimeout(function(){
+      document.body.classList.remove('auth-gate-active','auth-booting');
+      gate.classList.remove('active'); gate.setAttribute('aria-hidden','true');
+      loadingEl.classList.remove('active');
+    },650);
+  }
+  function setStatus(message,kind){
+    statusEl.textContent=message||'';
+    statusEl.className='auth-status'+(message?' show':'')+(kind?' '+kind:'');
+  }
+  function fieldError(input,error,message){
+    input.classList.toggle('invalid',!!message);
+    input.classList.toggle('valid',!message && input.value.trim().length>0);
+    error.textContent=message||''; error.classList.toggle('show',!!message);
+  }
+  function validateEmail(show){
+    var ok=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailEl.value.trim());
+    fieldError(emailEl,emailError,(!ok&&show)?'Enter a valid email address.':''); return ok;
+  }
+  function validatePassword(show){
+    var ok=passwordEl.value.length>=6;
+    fieldError(passwordEl,passwordError,(!ok&&show)?'Password must contain at least 6 characters.':''); return ok;
+  }
+  function setBusy(busy,message){
+    submitEl.disabled=busy; googleEl.disabled=busy;
+    submitEl.textContent=busy?'Signing in…':'Sign in';
+    loadingEl.classList.toggle('active',busy);
+    if(message) setStatus(message,'info');
+  }
+
+  emailEl.addEventListener('input',function(){validateEmail(true);if(statusEl.classList.contains('show'))setStatus('');});
+  passwordEl.addEventListener('input',function(){validatePassword(true);if(statusEl.classList.contains('show'))setStatus('');});
+  toggleEl.addEventListener('click',function(){
+    var show=passwordEl.type==='password'; passwordEl.type=show?'text':'password'; toggleEl.textContent=show?'Hide':'Show';
+  });
+
+  form.addEventListener('submit',async function(e){
+    e.preventDefault();
+    if(!validateEmail(true)||!validatePassword(true))return;
+    setStatus(''); setBusy(true,'Authenticating securely…');
+    try{
+      var Cloud=await window.waitForCloud(15000);
+      if(!Cloud||!Cloud.isConfigured)throw {code:'auth/not-configured'};
+      await Cloud.signInEmail(emailEl.value.trim(),passwordEl.value,!!rememberEl.checked);
+    }catch(err){
+      console.error('Email sign-in failed:',err); setBusy(false);
+      var msg=(window.Cloud&&window.Cloud.friendlyAuthError)?window.Cloud.friendlyAuthError(err):'We could not sign you in right now. Please try again.';
+      setStatus(msg);
+    }
+  });
+
+  googleEl.addEventListener('click',async function(){
+    setStatus(''); setBusy(true,'Opening secure Google sign-in…');
+    try{
+      var Cloud=await window.waitForCloud(15000);
+      if(!Cloud||!Cloud.isConfigured)throw {code:'auth/not-configured'};
+      await Cloud.signInGoogle();
+    }catch(err){
+      console.error('Google sign-in failed:',err); setBusy(false);
+      var msg=(window.Cloud&&window.Cloud.friendlyAuthError)?window.Cloud.friendlyAuthError(err):'We could not sign you in with Google. Please try again.';
+      if(msg)setStatus(msg);
+    }
+  });
+
+  window.addEventListener('firebase-auth-changed',function(e){
+    var detail=e.detail||{};
+    if(detail.uid){
+      var label=document.getElementById('auth-user-label'); if(label)label.textContent=detail.email||'Signed in';
+      setBusy(true,'Loading your workspace…'); hideGate();
+    }else{
+      showGate(); setStatus(''); emailEl.focus();
+    }
+  });
+
+  (function waitForInitialAuth(){
+    var started=Date.now();
+    (function poll(){
+      if(window.Cloud&&typeof window.Cloud.getCurrentUid==='function'){
+        var uid=window.Cloud.getCurrentUid();
+        if(uid){
+          var label=document.getElementById('auth-user-label'); if(label)label.textContent='Signed in';
+          hideGate(); return;
+        }
+        if(Date.now()-started>1500){showGate();return;}
+      }
+      if(Date.now()-started<15000)setTimeout(poll,50);else showGate();
+    })();
+  })();
+})();
 </script>
 
 <script>
