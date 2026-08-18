@@ -3690,6 +3690,90 @@ body{
 <style id="admin-users-style">
 .admin-only-tab{display:none !important}.admin-only-tab.admin-visible{display:flex !important}.admin-users-wrap{max-width:1180px;margin:0 auto;padding:28px 8px 50px;color:#292A3D}.admin-users-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}.admin-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;color:#6657C8;font-weight:700;margin-bottom:5px}.admin-users-head h1{margin:0;font-size:28px;color:#292A3D}.admin-users-head p{margin:7px 0 0;color:#707286;font-size:13px;max-width:720px}.admin-refresh{border:1px solid #DCDCE7;background:#fff;color:#5143A8;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer}.admin-refresh:hover{background:#F3F0FF}.admin-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.admin-kpi{background:#fff;border:1px solid #E8E8F0;border-radius:14px;padding:16px 18px;box-shadow:0 8px 24px rgba(45,42,90,.06)}.admin-kpi span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8B8D9C;font-weight:700}.admin-kpi strong{display:block;margin-top:6px;font-size:25px;color:#292A3D}.admin-table-card{background:#fff;border:1px solid #E8E8F0;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(45,42,90,.07)}.admin-table-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #ECECF2}.admin-table-head strong{font-size:15px}.admin-table-head span{font-size:11px;color:#8B8D9C}.admin-table-scroll{overflow:auto}.admin-users-table{width:100%;border-collapse:collapse;min-width:760px}.admin-users-table th{background:#FAFAFD;text-align:left;padding:11px 14px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7B7D8D}.admin-users-table td{padding:12px 14px;border-top:1px solid #F0F0F4;font-size:12.5px;color:#45475A;vertical-align:middle}.admin-user-cell{display:flex;align-items:center;gap:9px;min-width:180px}.admin-user-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#EEEAFE;color:#5143A8;font-weight:800;overflow:hidden;flex-shrink:0}.admin-user-avatar img{width:100%;height:100%;object-fit:cover}.admin-user-name{font-weight:700;color:#292A3D}.admin-user-sub{font-size:10.5px;color:#9A9BAA;margin-top:2px}.admin-feature{display:inline-flex;padding:4px 8px;border-radius:999px;background:#EEEAFE;color:#5143A8;font-size:10.5px;font-weight:700}.admin-empty{text-align:center!important;padding:38px!important;color:#9A9BAA!important}.admin-privacy-note{margin-top:12px;color:#8B8D9C;font-size:11px;padding:0 4px}@media(max-width:800px){.admin-kpis{grid-template-columns:repeat(2,1fr)}.admin-users-head{flex-direction:column}}
 </style>
+
+<style id="daily-task-final-contrast-fix">
+/* Daily Tasks — restore shared workspace background + readable light-theme typography */
+.app-daily{
+  background:#F3F2F1 !important;
+  color:#292A3D !important;
+  padding:28px 16px 60px !important;
+}
+.app-daily .title{color:#292A3D !important;}
+.app-daily .eyebrow{color:#6657C8 !important;}
+.app-daily .datebar{
+  background:#FFFFFF !important;
+  border:1px solid #E8E8F0 !important;
+  color:#292A3D !important;
+  box-shadow:0 2px 8px rgba(45,42,90,.045);
+}
+.app-daily .datebar button{color:#6657C8 !important;}
+.app-daily .datebar button:hover{background:#EEEAFE !important;}
+.app-daily .datebar .today-btn{
+  color:#5143A8 !important;
+  background:#EEEAFE !important;
+  border-color:#DCD5FA !important;
+}
+.app-daily .datebar span.dstr{color:#292A3D !important;}
+.app-daily .streak-badge{
+  color:#5A4AAE !important;
+  background:#EEEAFE !important;
+  border:1px solid #DED8FB !important;
+  border-radius:999px;
+}
+.app-daily .stat-card,
+.app-daily .panel,
+.app-daily .task-card,
+.app-daily .focus-card,
+.app-daily .rhythm-card{
+  background:#FFFFFF !important;
+}
+.app-daily .stat-card .label,
+.app-daily .stat-card .sub,
+.app-daily .panel .panel-sub,
+.app-daily .entry-meta,
+.app-daily .empty-note,
+.app-daily .comment-meta,
+.app-daily .comment-toggle-btn{
+  color:#707286 !important;
+}
+.app-daily .stat-card .value{color:#5143A8 !important;}
+.app-daily .panel h2{color:#292A3D !important;}
+.app-daily .entry-text{color:#292A3D !important;}
+.app-daily .entry-text.done{color:#9A9BAA !important;}
+.app-daily .entry-meta.carried{color:#AD771E !important;}
+.app-daily .storage-note{color:#707286 !important;}
+.app-daily .reset-btn{
+  color:#5143A8 !important;
+  border-color:#DCDCE7 !important;
+  background:#FFFFFF !important;
+}
+.app-daily .reset-btn:hover{
+  color:#D05C79 !important;
+  background:#FDECF2 !important;
+  border-color:#F1C8D4 !important;
+}
+.app-daily .filter-row button{
+  color:#707286 !important;
+  background:#FFFFFF !important;
+  border-color:#E8E8F0 !important;
+}
+.app-daily .filter-row button.active{
+  color:#FFFFFF !important;
+  background:#6657C8 !important;
+  border-color:#6657C8 !important;
+}
+.app-daily .add-row input[type=text],
+.app-daily .add-row select,
+.app-daily .add-row input[type=date]{
+  color:#292A3D !important;
+  background:#FAFAFD !important;
+}
+.app-daily .add-row input[type=text]::placeholder{color:#9A9BAA !important;}
+.app-daily .add-row select,
+.app-daily .add-row input[type=date]{color:#707286 !important;}
+.app-daily .task-count-chip{color:#6657C8 !important;}
+</style>
+
 </head>
 <body>
 
