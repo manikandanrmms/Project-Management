@@ -6505,7 +6505,10 @@ function cycleStatus(task) {
   const statuses = plannerStatusList(plan);
   if (!statuses.length) return;
   const i = statuses.findIndex(b => b.id === task.status);
-  task.status = statuses[(i + 1) % statuses.length].id;
+  const nextStatus = statuses[(i + 1) % statuses.length].id;
+  // Status and Bucket represent the same workflow stage.
+  task.status = nextStatus;
+  task.bucketId = nextStatus;
 }
 
 // ---------- rendering: chrome ----------
@@ -6691,7 +6694,13 @@ function attachDnd() {
       e.preventDefault(); bucketEl.classList.remove("drag-over");
       const bucketId = bucketEl.dataset.bucketId;
       const t = currentPlan().tasks.find(x => x.id === dragTaskId);
-      if (t && t.bucketId !== bucketId) { t.bucketId = bucketId; plRenderAll(); }
+      if (t && bucketId) {
+        // Bucket and Status are synchronized: dropping into a bucket
+        // immediately changes the task status to that bucket.
+        t.bucketId = bucketId;
+        t.status = bucketId;
+        plRenderAll();
+      }
     });
   });
 }
@@ -6726,7 +6735,8 @@ function confirmAddBucket() {
 // ---------- task modal ----------
 function populateSelects(selectedStatus) {
   const plan = currentPlan();
-  document.getElementById("f-bucket").innerHTML = plan.buckets.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+  const bucketSelect = document.getElementById("f-bucket");
+  bucketSelect.innerHTML = plan.buckets.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
   document.getElementById("f-assignee").innerHTML = `<option value="">Unassigned</option>` + people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
 
   const statusSelect = document.getElementById("f-status");
@@ -6739,6 +6749,18 @@ function populateSelects(selectedStatus) {
     statusSelect.value = selectedStatus;
   } else if (statuses.length) {
     statusSelect.value = statuses[0].id;
+  }
+
+  // Keep Status synchronized with Bucket when editing/creating a task.
+  if (!bucketSelect.dataset.statusSyncBound) {
+    bucketSelect.addEventListener("change", () => {
+      const selectedBucketId = bucketSelect.value;
+      const liveStatuses = plannerStatusList(currentPlan());
+      if (liveStatuses.some(b => b.id === selectedBucketId)) {
+        statusSelect.value = selectedBucketId;
+      }
+    });
+    bucketSelect.dataset.statusSyncBound = "1";
   }
 }
 function plRenderAttachList() {
@@ -6781,8 +6803,8 @@ function openNewTask(bucketId) {
   document.getElementById("f-due").value = "";
   document.getElementById("f-assignee").value = "";
   document.getElementById("f-bucket").value = bucketId;
-  const firstStatus = plannerStatusList(currentPlan())[0];
-  document.getElementById("f-status").value = firstStatus ? firstStatus.id : "";
+  // New tasks start with the bucket selected on the board.
+  document.getElementById("f-status").value = bucketId || "";
   document.getElementById("f-error").classList.remove("show");
   plRenderAttachList();
   openModalEl();
@@ -6800,11 +6822,10 @@ function openEditTask(id) {
   document.getElementById("f-due").value = t.due || "";
   document.getElementById("f-assignee").value = t.assigneeId || "";
   document.getElementById("f-bucket").value = t.bucketId;
+  // Existing tasks derive Status from their current Bucket.
+  t.status = t.bucketId;
   populateSelects(t.status);
-  if (!plannerStatusList(currentPlan()).some(b => b.id === t.status)) {
-    const firstStatus = plannerStatusList(currentPlan())[0];
-    if (firstStatus) { t.status = firstStatus.id; document.getElementById("f-status").value = firstStatus.id; }
-  }
+  document.getElementById("f-status").value = t.bucketId || "";
   document.getElementById("f-error").classList.remove("show");
   plRenderAttachList();
   openModalEl();
@@ -6822,7 +6843,9 @@ function submitModal() {
   const due = document.getElementById("f-due").value || null;
   const assigneeId = document.getElementById("f-assignee").value || null;
   const bucketId = document.getElementById("f-bucket").value;
-  const status = document.getElementById("f-status").value;
+  // Status is derived from Bucket, preventing an old value such as Backlog
+  // from remaining after the task is moved to another bucket.
+  const status = bucketId;
   const plan = currentPlan();
 
   if (modalMode === "new") {
@@ -6943,13 +6966,23 @@ function normalizePlannerStatuses(plan) {
   const statuses = plannerStatusList(plan);
   if (!statuses.length) return;
   plan.tasks.forEach(task => {
-    if (statuses.some(b => b.id === task.status)) return;
+    // Bucket is the single source of truth for workflow status.
+    // This also repairs older tasks whose status was left on Backlog after
+    // they were moved to another bucket.
+    if (task.bucketId && statuses.some(b => b.id === task.bucketId)) {
+      task.status = task.bucketId;
+      return;
+    }
+
     const legacy = String(task.status || "").toLowerCase();
     let target = null;
     if (legacy === "completed") target = statuses.find(b => /^(done|completed|complete)$/i.test(b.name.trim())) || statuses[statuses.length - 1];
     else if (legacy === "inprogress") target = statuses.find(b => /in.?progress/i.test(b.name)) || statuses[Math.min(1, statuses.length - 1)];
     else target = statuses.find(b => /backlog|not.?started/i.test(b.name)) || statuses[0];
-    if (target) task.status = target.id;
+    if (target) {
+      task.status = target.id;
+      task.bucketId = target.id;
+    }
   });
 }
 
