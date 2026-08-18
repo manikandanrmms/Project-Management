@@ -3659,6 +3659,34 @@ body{
 @media(max-width:900px){.app-issues .attention-grid{grid-template-columns:1fr}.app-issues .issue-hero-top{align-items:flex-start}.app-issues .kanban-wrap{grid-template-columns:repeat(4,260px)}}
 </style>
 
+
+<style id="daily-task-shared-background">
+/* Daily Tasks — align page background with Planner / other workspace tabs */
+.app-daily{
+  --daily-shared-bg:#F3F2F1;
+  --daily-shared-card:#FFFFFF;
+  background:var(--daily-shared-bg) !important;
+  color:var(--text-primary, #252423);
+}
+.app-daily .panel,
+.app-daily .stat-card,
+.app-daily .task-card,
+.app-daily .week-strip,
+.app-daily .datebar{
+  background:var(--daily-shared-card);
+}
+.app-daily .panel{
+  border-color:#E1DFDD;
+  box-shadow:0 4px 14px rgba(0,0,0,.06);
+}
+.app-daily .stat-card{
+  border-color:#E1DFDD;
+}
+.app-daily .week-strip{
+  border-color:#E1DFDD;
+}
+</style>
+
 </head>
 <body>
 
