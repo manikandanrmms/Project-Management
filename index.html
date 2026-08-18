@@ -3543,6 +3543,18 @@ body{
 .app-storyboard .local-banner{margin-top:0;}
 
 </style>
+<style>
+/* Story Board enhancements */
+.app-storyboard .story-analytics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr)) auto;gap:10px;margin:0 0 16px;}
+.app-storyboard .story-analytics-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow);min-width:0;}
+.app-storyboard .story-analytics-card span{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);font-weight:600;}
+.app-storyboard .story-analytics-card strong{display:block;margin-top:4px;font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--ink);}
+.app-storyboard .story-analytics-wide{min-width:190px;}
+.app-storyboard #cloudSaveStatus{font-size:11px;color:var(--ink-faint);align-self:center;}
+@media(max-width:900px){.app-storyboard .story-analytics{grid-template-columns:repeat(2,1fr);}.app-storyboard .story-analytics-wide{grid-column:span 2;}}
+@media(max-width:600px){.app-storyboard .board-toolbar>div:last-child{width:100%;display:grid!important;grid-template-columns:1fr 1fr;}.app-storyboard .board-toolbar button{width:100%;}}
+@media print{body{background:#fff!important}.shell-header,.cloud-banner,.debug-panel,.shell-panel:not(#panel-storyboard){display:none!important}.shell-main{max-width:none!important;padding:0!important}#panel-storyboard{display:block!important}#panel-storyboard .intake,#panel-storyboard .local-banner,#panel-storyboard .board-toolbar,#panel-storyboard .story-analytics{display:none!important}#panel-storyboard .app-storyboard{box-shadow:none!important;border:none!important}#panel-storyboard .board{overflow:visible!important;display:grid!important;grid-template-columns:repeat(2,1fr);gap:12px}#panel-storyboard .column{max-height:none!important;break-inside:avoid;page-break-inside:avoid}#panel-storyboard .card{break-inside:avoid;page-break-inside:avoid}}
+</style>
 </head>
 <body>
 
@@ -3951,8 +3963,20 @@ body{
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-ghost btn-sm" id="moreBtn">Generate more stories</button>
+      <button class="btn btn-ghost btn-sm" id="saveBoardBtn">Save to Cloud</button>
+      <button class="btn btn-ghost btn-sm" id="pdfBtn">Save PDF</button>
+      <button class="btn btn-ghost btn-sm" id="plannerBtn">Send to Planner</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">Export CSV</button>
+      <span id="cloudSaveStatus"></span>
     </div>
+  </div>
+
+  <div class="story-analytics" id="storyAnalytics" style="display:none;">
+    <div class="story-analytics-card"><span>Total Stories</span><strong id="saTotal">0</strong></div>
+    <div class="story-analytics-card"><span>Total Points</span><strong id="saPoints">0</strong></div>
+    <div class="story-analytics-card"><span>High Priority</span><strong id="saHigh">0</strong></div>
+    <div class="story-analytics-card"><span>Epics</span><strong id="saEpics">0</strong></div>
+    <div class="story-analytics-card story-analytics-wide"><span>Sprint Distribution</span><strong id="saSprints">—</strong></div>
   </div>
 
   <div id="boardWrap">
@@ -4609,7 +4633,53 @@ body{
     a.href = URL.createObjectURL(blob);
     a.download = 'user_story_backlog.csv';
     a.click();
+  })
+
+  // ===== Story Board enhancements =====
+  const STORYBOARD_KEY = 'storyboard-v1';
+  let storyCloudSyncArmed = false;
+
+  function storyboardSnapshot(){
+    return {stories: stories.map(s => ({...s, criteria:Array.isArray(s.criteria)?s.criteria.slice():[]})), idCounter, sourceText, currentFileName, savedAt:new Date().toISOString()};
+  }
+  function updateAnalytics(){
+    const panel=el('storyAnalytics'); if(!panel) return;
+    if(!stories.length){panel.style.display='none';return;}
+    panel.style.display='grid';
+    el('saTotal').textContent=stories.length;
+    el('saPoints').textContent=stories.reduce((n,s)=>n+(Number(s.points)||0),0);
+    el('saHigh').textContent=stories.filter(s=>s.priority==='High').length;
+    el('saEpics').textContent=new Set(stories.map(s=>s.epic).filter(Boolean)).size;
+    el('saSprints').textContent=SPRINTS.map(sp=>`${sp}: ${stories.filter(s=>s.sprint===sp).length}`).join(' · ');
+  }
+  function saveStoryboardCloud(showStatus){
+    if(!window.Cloud || !storyCloudSyncArmed){if(showStatus) alert('Please sign in with Google first to save Story Boards to Firebase.');return false;}
+    Cloud.scheduleSave(STORYBOARD_KEY,()=>storyboardSnapshot(),250);
+    if(showStatus){const st=el('cloudSaveStatus');if(st){st.textContent='Cloud save queued';setTimeout(()=>st.textContent='',1800);}}
+    return true;
+  }
+  async function loadStoryboardCloud(uid){
+    storyCloudSyncArmed=false;if(!uid)return;
+    try{const C=await window.waitForCloud();if(!C||C.getCurrentUid()!==uid)return;const result=await C.getItemSafe(STORYBOARD_KEY);if(!result.ok)return;const data=result.value;if(data&&Array.isArray(data.stories)){stories=data.stories;idCounter=Number(data.idCounter)||stories.length+1;sourceText=data.sourceText||'';currentFileName=data.currentFileName||'';docPayload=null;renderBoard();}storyCloudSyncArmed=true;updateAnalytics();}catch(err){console.warn('Story Board cloud load failed:',err);}
+  }
+  window.addEventListener('firebase-auth-changed',e=>loadStoryboardCloud(e&&e.detail?e.detail.uid:null));
+  (async function initStoryboardCloud(){try{const C=await window.waitForCloud();const uid=C&&C.getCurrentUid?C.getCurrentUid():null;await loadStoryboardCloud(uid);if(uid)storyCloudSyncArmed=true;}catch(e){}})();
+
+  const _storyRenderBoard=renderBoard;
+  renderBoard=function(){_storyRenderBoard();updateAnalytics();if(stories.length&&storyCloudSyncArmed)saveStoryboardCloud(false);};
+
+  el('saveBoardBtn').addEventListener('click',()=>saveStoryboardCloud(true));
+  el('pdfBtn').addEventListener('click',()=>{if(!stories.length){alert('Generate a Story Board before exporting to PDF.');return;}window.print();});
+  el('plannerBtn').addEventListener('click',()=>{
+    if(!stories.length){alert('Generate a Story Board before sending stories to Planner.');return;}
+    try{
+      const plan=typeof currentPlan==='function'?currentPlan():null;if(!plan){alert('Please sign in and load a Planner plan first.');return;}
+      const backlog=plan.buckets.find(b=>/backlog/i.test(b.name))||plan.buckets[0];const existing=new Set(plan.tasks.map(t=>String(t.title||'').trim().toLowerCase()));let added=0;
+      stories.forEach(s=>{const title=`[${s.id}] ${s.title}`;if(existing.has(title.toLowerCase()))return;const priority=s.priority==='High'?'urgent':s.priority==='Medium'?'important':'low';const notes=`${s.story||''}\n\nAcceptance Criteria:\n${(s.criteria||[]).map(c=>'• '+c).join('\n')}\n\nEpic: ${s.epic||'—'} | Story Points: ${s.points||0}`;plan.tasks.push({id:plUid(),bucketId:backlog.id,title,notes,priority,due:null,assigneeId:null,status:'notstarted',attachments:[]});existing.add(title.toLowerCase());added++;});
+      if(typeof plRenderAll==='function')plRenderAll();showTab('planner');alert(`${added} story${added===1?'':'ies'} sent to Planner${added?` in ${plan.name}`:' (duplicates were skipped)'}.`);
+    }catch(err){console.error(err);alert('Could not send stories to Planner.');}
   });
+;
 })();
 
 </script>
