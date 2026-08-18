@@ -3571,6 +3571,94 @@ body{
 @media(max-width:700px){.app-storyboard .saved-board-item{align-items:flex-start;flex-direction:column}.app-storyboard .saved-board-actions{width:100%}.app-storyboard .saved-board-actions .btn{flex:1}}
 @media print{body{background:#fff!important}.shell-header,.cloud-banner,.debug-panel,.shell-panel:not(#panel-storyboard){display:none!important}.shell-main{max-width:none!important;padding:0!important}#panel-storyboard{display:block!important}#panel-storyboard .intake,#panel-storyboard .local-banner,#panel-storyboard .board-toolbar,#panel-storyboard .story-analytics{display:none!important}#panel-storyboard .app-storyboard{box-shadow:none!important;border:none!important}#panel-storyboard .board{overflow:visible!important;display:grid!important;grid-template-columns:repeat(2,1fr);gap:12px}#panel-storyboard .column{max-height:none!important;break-inside:avoid;page-break-inside:avoid}#panel-storyboard .card{break-inside:avoid;page-break-inside:avoid}}
 </style>
+
+<style id="daily-task-modern-overrides">
+/* ===== DAILY TASKS 2.0 — interactive visual layer ===== */
+.app-daily{background:linear-gradient(145deg,#151b2a 0%,#20283a 52%,#171d2b 100%) !important;padding:30px 18px 64px !important;}
+.app-daily .wrap{max-width:1040px !important;}
+.app-daily .masthead{align-items:center !important;margin-bottom:22px !important;}
+.app-daily .title{font-size:34px !important;letter-spacing:-.035em !important;}
+.app-daily .eyebrow{color:#B8A9FF !important;}
+.app-daily .datebar{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.12) !important;backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.18);}
+.app-daily .datebar span.dstr{min-width:220px !important;}
+.app-daily .streak-badge{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);padding:9px 12px;border-radius:12px;color:#FFD978 !important;}
+.app-daily .daily-hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(240px,.75fr);gap:16px;margin-bottom:16px;}
+.app-daily .focus-card,.app-daily .rhythm-card{background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.2);border-radius:20px;box-shadow:0 18px 45px rgba(0,0,0,.16);}
+.app-daily .focus-card{padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;overflow:hidden;position:relative;}
+.app-daily .focus-card:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-70px;top:-95px;background:rgba(102,87,200,.10);}
+.app-daily .focus-copy{position:relative;z-index:1;}
+.app-daily .focus-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-family:'IBM Plex Mono',monospace;color:#7B8190;margin-bottom:5px;}
+.app-daily .focus-title{font-size:22px;font-weight:700;color:#252A38;letter-spacing:-.02em;}
+.app-daily .focus-sub{font-size:12px;color:#777E8E;margin-top:5px;}
+.app-daily .progress-ring{width:108px;height:108px;min-width:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#6657C8 var(--pct,0%),#ECEAF7 0);position:relative;z-index:1;box-shadow:inset 0 0 0 1px rgba(102,87,200,.08);}
+.app-daily .progress-ring:before{content:"";position:absolute;inset:9px;border-radius:50%;background:#fff;}
+.app-daily .progress-ring-inner{position:relative;text-align:center;z-index:2;}
+.app-daily .progress-ring-value{font-size:22px;font-weight:800;color:#5143A8;line-height:1;}
+.app-daily .progress-ring-label{font-size:9px;color:#8A8F9C;text-transform:uppercase;letter-spacing:.08em;margin-top:3px;}
+.app-daily .rhythm-card{padding:18px 18px 16px;}
+.app-daily .rhythm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.app-daily .rhythm-title{font-weight:700;color:#252A38;font-size:13px;}
+.app-daily .rhythm-sub{font-size:10px;color:#8A8F9C;font-family:'IBM Plex Mono',monospace;}
+.app-daily .week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.app-daily .week-day{border:1px solid #ECECF2;background:#FAFAFC;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.18s ease;}
+.app-daily .week-day:hover{transform:translateY(-2px);border-color:#CFC8F4;box-shadow:0 6px 14px rgba(57,49,113,.08);}
+.app-daily .week-day.selected{background:#6657C8;border-color:#6657C8;color:#fff;box-shadow:0 8px 18px rgba(102,87,200,.25);}
+.app-daily .week-day.today:not(.selected){border-color:#AFA5E9;background:#F4F1FF;}
+.app-daily .week-day-name{font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;opacity:.72;}
+.app-daily .week-day-num{font-size:16px;font-weight:800;margin:3px 0;}
+.app-daily .week-dot{width:6px;height:6px;border-radius:50%;margin:0 auto;background:#D9D9E4;}
+.app-daily .week-day.has-progress .week-dot{background:#55B88A;}
+.app-daily .week-day.has-tasks:not(.has-progress) .week-dot{background:#F2B544;}
+.app-daily .week-day.selected .week-dot{background:#fff;}
+.app-daily .dash{grid-template-columns:repeat(4,1fr) !important;gap:12px !important;margin-bottom:16px !important;}
+.app-daily .stat-card{border-radius:16px !important;padding:15px 16px !important;box-shadow:0 10px 26px rgba(0,0,0,.10);transition:transform .18s ease,box-shadow .18s ease;}
+.app-daily .stat-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.14);}
+.app-daily .panel{border-radius:20px !important;padding:22px 22px 24px !important;box-shadow:0 20px 50px rgba(0,0,0,.15);}
+.app-daily .panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.app-daily .panel-heading h2{margin:0 !important;font-size:21px !important;}
+.app-daily .task-count-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6657C8;background:#F0EDFF;border:1px solid #DDD7FA;border-radius:999px;padding:6px 9px;white-space:nowrap;}
+.app-daily form.add-row{background:#F7F7FB;border:1px solid #ECECF3;border-radius:14px;padding:7px;margin-bottom:14px !important;gap:7px !important;}
+.app-daily .add-row input[type=text]{background:#fff !important;border-color:#E3E3EB !important;border-radius:10px !important;padding:10px 12px !important;}
+.app-daily .add-row select,.app-daily .add-row input[type=date]{background:#fff !important;border-color:#E3E3EB !important;border-radius:10px !important;padding:0 9px !important;}
+.app-daily .add-row button{width:38px !important;height:38px;border-radius:10px !important;background:#6657C8 !important;box-shadow:0 7px 14px rgba(102,87,200,.22);}
+.app-daily .filter-row{margin-bottom:14px !important;}
+.app-daily .filter-row button{border-color:#E1E1E9 !important;background:#FAFAFC !important;border-radius:999px !important;padding:6px 11px !important;}
+.app-daily .filter-row button.active{background:#6657C8 !important;border-color:#6657C8 !important;box-shadow:0 5px 12px rgba(102,87,200,.18);}
+.app-daily ul.entries{gap:9px !important;}
+.app-daily ul.entries li{border:0 !important;padding:0 !important;}
+.app-daily .task-card{background:#fff;border:1px solid #ECECF2;border-radius:15px;padding:13px 14px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;}
+.app-daily .task-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(42,45,66,.09);border-color:#DCD9EF;}
+.app-daily .task-card.is-done{background:linear-gradient(135deg,#FBFDFC,#F4FAF7);}
+.app-daily .task-card .entry-row{gap:11px !important;}
+.app-daily .stamp{width:24px !important;height:24px !important;border-color:#6657C8 !important;transition:.18s ease;}
+.app-daily .stamp:hover{transform:scale(1.08);box-shadow:0 0 0 5px rgba(102,87,200,.10);}
+.app-daily .stamp.done{background:#55B88A !important;border-color:#55B88A !important;transform:none !important;}
+.app-daily .entry-text{font-size:14px !important;font-weight:600;line-height:1.35;}
+.app-daily .entry-meta{margin-top:5px !important;display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.app-daily .meta-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:999px;background:#F5F5F8;color:#7D8290;font-size:9.5px;font-family:'IBM Plex Mono',monospace;}
+.app-daily .meta-chip.carry{background:#FFF5E4;color:#B47722;}
+.app-daily .meta-chip.due{background:#EEF3FF;color:#5A78C8;}
+.app-daily .prio-pill{border-radius:999px !important;padding:4px 8px !important;font-size:9px !important;}
+.app-daily .comment-toggle-btn{border-radius:8px !important;padding:6px !important;background:#F7F7FA !important;}
+.app-daily .comment-toggle-btn:hover{background:#EFECFF !important;color:#6657C8 !important;}
+.app-daily .del-btn{border-radius:8px !important;padding:6px !important;}
+.app-daily .comments-panel{margin:9px 0 2px 35px !important;border-radius:12px !important;background:#FAFAFD !important;border-color:#E7E5EF !important;}
+.app-daily .footer-row{margin-top:14px !important;}
+@keyframes taskPop{0%{transform:scale(.98);opacity:.75}100%{transform:scale(1);opacity:1}}
+.app-daily .task-card{animation:taskPop .22s ease-out both;}
+@media(max-width:900px){.app-daily .daily-hero{grid-template-columns:1fr}.app-daily .rhythm-card{order:2}.app-daily .dash{grid-template-columns:repeat(2,1fr) !important;}}
+@media(max-width:620px){.app-daily{padding:20px 10px 50px !important}.app-daily .title{font-size:28px !important}.app-daily .masthead{align-items:flex-start}.app-daily .streak-badge{font-size:11px}.app-daily .datebar span.dstr{min-width:160px !important;font-size:13px}.app-daily .focus-card{padding:18px}.app-daily .progress-ring{width:88px;height:88px;min-width:88px}.app-daily .progress-ring-value{font-size:18px}.app-daily .panel{padding:17px !important}.app-daily form.add-row{display:grid !important;grid-template-columns:1fr 1fr}.app-daily .add-row input[type=text]{grid-column:1/-1}.app-daily .add-row button{width:100% !important}.app-daily .task-card .entry-row{align-items:flex-start !important;flex-wrap:wrap}.app-daily .entry-main{min-width:calc(100% - 40px)}.app-daily .prio-pill{margin-left:35px}.app-daily .comment-toggle-btn{margin-left:auto}.app-daily .del-btn{margin-left:0}.app-daily .comments-panel{margin-left:0 !important}.app-daily .week-strip{gap:4px}.app-daily .week-day{padding:7px 2px}}
+
+/* ===== Issue Command Center 2.0 ===== */
+.app-issues .issue-hero{background:linear-gradient(135deg,#17213a 0%,#253a67 58%,#355a76 100%);border-radius:20px;padding:26px 28px;margin-bottom:18px;color:#fff;position:relative;overflow:hidden;box-shadow:0 18px 42px rgba(25,39,73,.16)}
+.app-issues .issue-hero:after{content:'';position:absolute;width:240px;height:240px;border-radius:50%;right:-70px;top:-110px;background:rgba(255,255,255,.08)}
+.app-issues .issue-hero-top{display:flex;justify-content:space-between;gap:20px;align-items:center;position:relative;z-index:1}.app-issues .issue-hero h2{font-size:25px;margin:0 0 5px;font-family:var(--disp)}.app-issues .issue-hero p{color:rgba(255,255,255,.72);font-size:13px}.app-issues .health-ring{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#79d7b5 var(--health),rgba(255,255,255,.14) 0);position:relative;flex:0 0 auto}.app-issues .health-ring:before{content:'';position:absolute;inset:8px;border-radius:50%;background:#22375f}.app-issues .health-ring strong,.app-issues .health-ring span{position:relative;z-index:1}.app-issues .health-ring strong{font-size:22px}.app-issues .health-ring span{font-size:9px;display:block;text-align:center;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em}
+.app-issues .attention{background:#fff;border:1px solid #e6e8ee;border-radius:16px;padding:18px;margin-bottom:18px;box-shadow:0 8px 24px rgba(25,39,73,.05)}.app-issues .section-kicker{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.app-issues .section-kicker h3{font-size:14px}.app-issues .attention-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.app-issues .attention-card{border:1px solid #eceef3;border-radius:12px;padding:13px;background:#fafbfc;cursor:pointer;transition:.18s}.app-issues .attention-card:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(25,39,73,.08)}.app-issues .attention-card .a-top{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.app-issues .attention-card .a-title{font-weight:700;font-size:13px;line-height:1.35}.app-issues .attention-card .a-meta{font-size:11px;color:var(--text3);margin-top:7px}.app-issues .aging{font-size:10px;font-weight:700;border-radius:20px;padding:4px 7px;background:#fee9e7;color:#b83d32;white-space:nowrap}
+.app-issues .view-switch{display:flex;background:#f1f3f6;border-radius:9px;padding:3px;gap:2px}.app-issues .view-switch button{border:0;background:transparent;padding:7px 11px;border-radius:7px;font-size:11px;font-weight:700;color:#6b7280;cursor:pointer}.app-issues .view-switch button.active{background:#fff;color:#263b66;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.app-issues .kanban-wrap{display:none;grid-template-columns:repeat(4,minmax(230px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}.app-issues .kanban-wrap.active{display:grid}.app-issues .table-wrap.hidden{display:none}.app-issues .kanban-col{background:#f5f6f8;border:1px solid #e6e8ed;border-radius:14px;padding:11px;min-height:260px}.app-issues .kanban-col.dragover{outline:2px dashed #7187b5;outline-offset:2px}.app-issues .kanban-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;margin:2px 2px 10px}.app-issues .kanban-count{background:#fff;border:1px solid #e2e5eb;border-radius:20px;padding:2px 7px;color:#6b7280}.app-issues .issue-card{background:#fff;border:1px solid #e3e6eb;border-radius:12px;padding:13px;margin-bottom:9px;box-shadow:0 3px 10px rgba(20,31,55,.04);cursor:grab}.app-issues .issue-card:hover{box-shadow:0 8px 18px rgba(20,31,55,.09);transform:translateY(-1px)}.app-issues .issue-card-title{font-size:13px;font-weight:700;margin:9px 0 10px;line-height:1.35}.app-issues .issue-card-foot{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:#7b8190}.app-issues .mini-tags{display:flex;gap:5px;flex-wrap:wrap}.app-issues .mini-tag{font-size:9px;font-weight:700;padding:3px 6px;border-radius:12px;background:#f1f3f6;color:#626978}.app-issues .stat{transition:.2s}.app-issues .stat:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(25,39,73,.08)}
+@media(max-width:900px){.app-issues .attention-grid{grid-template-columns:1fr}.app-issues .issue-hero-top{align-items:flex-start}.app-issues .kanban-wrap{grid-template-columns:repeat(4,260px)}}
+</style>
+
 </head>
 <body>
 
@@ -3819,7 +3907,12 @@ body{
 
 <div class="main">
 
+  <div class="issue-hero" id="issue-command-hero">
+    <div class="issue-hero-top"><div><div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#9fb6e7;font-weight:700;margin-bottom:7px">Issue Command Center</div><h2>Project Issue Health</h2><p>Monitor blockers, prioritize attention and keep resolution moving.</p></div><div class="health-ring" id="issue-health-ring" style="--health:0%"><div><strong id="issue-health-score">100%</strong><span>Health</span></div></div></div>
+  </div>
+
   <div class="stats" id="stats"></div>
+  <div class="attention" id="issue-attention"><div class="section-kicker"><h3>⚠ Needs your attention</h3><span class="tag-count" id="attention-count"></span></div><div class="attention-grid" id="attention-grid"></div></div>
 
   <div class="toolbar">
     <input type="text" id="f-search" placeholder="Search issue ID or description..." oninput="renderTable()">
@@ -3827,6 +3920,7 @@ body{
     <select id="il-f-status" onchange="renderTable()"><option value="">All Statuses</option></select>
     <select id="il-f-priority" onchange="renderTable()"><option value="">All Priorities</option></select>
     <div class="spacer"></div>
+    <div class="view-switch"><button id="issue-table-btn" class="active" onclick="setIssueView('table')">Table</button><button id="issue-kanban-btn" onclick="setIssueView('kanban')">Kanban</button></div>
     <span class="tag-count" id="resultCount"></span>
   </div>
 
@@ -3905,6 +3999,7 @@ body{
       <tbody id="issue-table"></tbody>
     </table>
   </div>
+  <div class="kanban-wrap" id="issue-kanban"></div>
 
 </div>
     </div>
@@ -5035,7 +5130,35 @@ function clearDebugLog() { DebugLog.clear(); }
   }
 
   let db = null, auth = null, currentUid = null, readyResolve;
+  // Sync generation prevents delayed saves from an old auth session from
+  // ever being written into a newly signed-in user's account.
+  let syncGeneration = 0;
+  let lastSyncAt = null;
+  const pendingSaveTimers = {};
   const readyPromise = new Promise(res => { readyResolve = res; });
+
+  function setSyncSaving(key) {
+    const el = document.getElementById('cloud-status');
+    if (el && currentUid) {
+      el.textContent = 'Saving…';
+      el.classList.remove('error');
+      el.classList.add('ok');
+    }
+  }
+
+  function setSyncSaved() {
+    lastSyncAt = new Date();
+    const el = document.getElementById('cloud-status');
+    if (el && currentUid) {
+      el.textContent = 'Saved just now';
+      el.classList.remove('error');
+      el.classList.add('ok');
+      clearTimeout(window.__cloudSavedLabelTimer);
+      window.__cloudSavedLabelTimer = setTimeout(() => {
+        if (currentUid && el) el.textContent = 'Synced — signed in';
+      }, 3500);
+    }
+  }
 
   if (isConfigured) {
     try {
@@ -5044,6 +5167,12 @@ function clearDebugLog() { DebugLog.clear(); }
       auth = getAuth(app);
 
       onAuthStateChanged(auth, (user) => {
+        // Invalidate every delayed write scheduled under the previous auth
+        // session before changing currentUid. This is a critical cross-device
+        // safety guard: a sign-out/sign-in race must never copy one user's
+        // in-memory data into another user's Firestore document.
+        syncGeneration++;
+        Object.keys(pendingSaveTimers).forEach(k => { clearTimeout(pendingSaveTimers[k]); delete pendingSaveTimers[k]; });
         if (user) {
           currentUid = user.uid;
           setStatus('Synced — signed in', true);
@@ -5116,17 +5245,23 @@ function clearDebugLog() { DebugLog.clear(); }
     return r.value;
   }
 
-  async function setItem(key, value) {
+  async function setItem(key, value, options) {
     if (!db || !currentUid) return false;
+    const opts = options || {};
+    const expectedUid = opts.uid || currentUid;
+    const expectedGeneration = typeof opts.generation === 'number' ? opts.generation : syncGeneration;
+    if (currentUid !== expectedUid || syncGeneration !== expectedGeneration) return false;
+
     var logId = window.DebugLog && DebugLog.start('WRITE', key);
     try {
       await setDoc(doc(db, 'users', currentUid, 'app-data', key), { value, updatedAt: serverTimestamp() });
       if (window.DebugLog) DebugLog.finish(logId, true, 'committed');
+      setSyncSaved();
       return true;
     } catch (err) {
       console.error('Cloud setItem failed:', key, err);
       if (window.DebugLog) DebugLog.finish(logId, false, (err.code || '') + ' ' + (err.message || err));
-      setStatus('Sync error — changes were not saved', false, true);
+      setStatus('Sync error — retrying…', false, true);
       return false;
     }
   }
@@ -5146,9 +5281,40 @@ function clearDebugLog() { DebugLog.clear(); }
   }
 
   const saveTimers = {};
+  const saveRetryCount = {};
   function scheduleSave(key, valueFn, delay) {
     clearTimeout(saveTimers[key]);
-    saveTimers[key] = setTimeout(() => setItem(key, valueFn()), delay || 800);
+    const scheduledUid = currentUid;
+    const scheduledGeneration = syncGeneration;
+    if (!scheduledUid) return;
+
+    setSyncSaving(key);
+    saveRetryCount[key] = 0;
+
+    const attempt = async function() {
+      // Never let an old timer write after auth state has changed.
+      if (currentUid !== scheduledUid || syncGeneration !== scheduledGeneration) return;
+      const ok = await setItem(key, valueFn(), { uid: scheduledUid, generation: scheduledGeneration });
+      if (ok) {
+        delete saveRetryCount[key];
+        delete pendingSaveTimers[key];
+        return;
+      }
+
+      const attemptNo = (saveRetryCount[key] || 0) + 1;
+      saveRetryCount[key] = attemptNo;
+      if (attemptNo <= 3 && currentUid === scheduledUid && syncGeneration === scheduledGeneration) {
+        const retryDelay = attemptNo === 1 ? 1000 : attemptNo === 2 ? 2500 : 5000;
+        setSyncSaving(key);
+        pendingSaveTimers[key] = setTimeout(attempt, retryDelay);
+      } else {
+        setStatus('Sync failed — your changes are not confirmed', false, true);
+        delete pendingSaveTimers[key];
+      }
+    };
+
+    saveTimers[key] = setTimeout(attempt, delay || 800);
+    pendingSaveTimers[key] = saveTimers[key];
   }
 
   async function signInGoogle() {
@@ -5401,6 +5567,7 @@ window.waitForCloud = function (timeoutMs) {
   function goPrevDay() { state.currentDate = addDays(state.currentDate, -1); loadCurrentDay(); render(); }
   function goNextDay() { state.currentDate = addDays(state.currentDate, 1); loadCurrentDay(); render(); }
   function goToday() { state.currentDate = nowIST(); loadCurrentDay(); render(); }
+  function goToDateKey(key) { state.currentDate = parseDateKey(key); loadCurrentDay(); render(); }
 
   function addTask(text, priority, due) {
     text = text.trim();
@@ -5491,6 +5658,20 @@ window.waitForCloud = function (timeoutMs) {
     var doneCount = day.tasks.filter(function (t) { return t.done; }).length;
     var pending = day.tasks.length - doneCount;
     var highOpen = day.tasks.filter(function (t) { return !t.done && t.priority === "high"; }).length;
+    var safePct = pct === null ? 0 : pct;
+
+    var weekStrip = state.weekDays.map(function (wd) {
+      var s = completionPct(wd.data);
+      var selected = isSameDay(wd.date, state.currentDate);
+      var today = isSameDay(wd.date, nowIST());
+      var cls = 'week-day' + (selected ? ' selected' : '') + (today ? ' today' : '') +
+        (wd.data.tasks.length ? ' has-tasks' : '') + ((s !== null && s === 100) ? ' has-progress' : '');
+      return '<button type="button" class="' + cls + '" data-action="jump-date" data-date="' + dateKey(wd.date) + '" title="' + esc(fmtDate(wd.date)) + '">' +
+        '<div class="week-day-name">' + fmtNarrow(wd.date) + '</div>' +
+        '<div class="week-day-num">' + wd.date.getDate() + '</div>' +
+        '<div class="week-dot"></div>' +
+      '</button>';
+    }).join('');
 
     var bars = state.weekDays.map(function (wd) {
       var s = completionPct(wd.data);
@@ -5501,27 +5682,27 @@ window.waitForCloud = function (timeoutMs) {
     var labels = state.weekDays.map(function (wd) { return '<span>' + fmtNarrow(wd.date) + '</span>'; }).join('');
 
     return '' +
+      '<div class="daily-hero">' +
+        '<div class="focus-card">' +
+          '<div class="focus-copy">' +
+            '<div class="focus-kicker">Today\'s focus</div>' +
+            '<div class="focus-title">' + (day.tasks.length ? (pending ? pending + ' task' + (pending === 1 ? '' : 's') + ' still in motion' : 'Everything is cleared 🎉') : 'Start with one meaningful task') + '</div>' +
+            '<div class="focus-sub">' + doneCount + ' completed · ' + pending + ' remaining' + (highOpen ? ' · ' + highOpen + ' high priority' : '') + '</div>' +
+          '</div>' +
+          '<div class="progress-ring" style="--pct:' + safePct + '%">' +
+            '<div class="progress-ring-inner"><div class="progress-ring-value">' + (pct === null ? '0%' : pct + '%') + '</div><div class="progress-ring-label">progress</div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rhythm-card">' +
+          '<div class="rhythm-head"><span class="rhythm-title">This week</span><span class="rhythm-sub">tap a day</span></div>' +
+          '<div class="week-strip">' + weekStrip + '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="dash">' +
-        '<div class="stat-card">' +
-          '<div class="label">Completion</div>' +
-          '<div class="value mono">' + (pct === null ? '—' : pct + '%') + '</div>' +
-          '<div class="sub">' + doneCount + ' of ' + day.tasks.length + ' done</div>' +
-        '</div>' +
-        '<div class="stat-card accent-red">' +
-          '<div class="label">Pending</div>' +
-          '<div class="value mono">' + pending + '</div>' +
-          '<div class="sub">' + highOpen + ' high priority open</div>' +
-        '</div>' +
-        '<div class="stat-card accent-gold">' +
-          '<div class="label">Streak</div>' +
-          '<div class="value mono">' + state.streak + '</div>' +
-          '<div class="sub">day' + (state.streak === 1 ? '' : 's') + ' fully cleared</div>' +
-        '</div>' +
-        '<div class="stat-card">' +
-          '<div class="label">Last 7 Days</div>' +
-          '<div class="spark-bars">' + bars + '</div>' +
-          '<div class="spark-labels">' + labels + '</div>' +
-        '</div>' +
+        '<div class="stat-card"><div class="label">Completion</div><div class="value mono">' + (pct === null ? '—' : pct + '%') + '</div><div class="sub">' + doneCount + ' of ' + day.tasks.length + ' done</div></div>' +
+        '<div class="stat-card accent-red"><div class="label">Pending</div><div class="value mono">' + pending + '</div><div class="sub">' + highOpen + ' high priority open</div></div>' +
+        '<div class="stat-card accent-gold"><div class="label">Streak</div><div class="value mono">' + state.streak + '</div><div class="sub">day' + (state.streak === 1 ? '' : 's') + ' fully cleared</div></div>' +
+        '<div class="stat-card"><div class="label">Last 7 Days</div><div class="spark-bars">' + bars + '</div><div class="spark-labels">' + labels + '</div></div>' +
       '</div>';
   }
 
@@ -5576,25 +5757,26 @@ window.waitForCloud = function (timeoutMs) {
   }
 
   function renderTaskItem(t) {
-    var metaParts = [];
-    if (t.carriedFrom) metaParts.push('carried from ' + fmtShort(parseDateKey(t.carriedFrom)));
-    if (t.due) metaParts.push('due ' + t.due);
-    var meta = metaParts.join(' \u00b7 ');
     var commentCount = (t.comments || []).length;
     var isOpen = !!state.openComments[t.id];
+    var carryChip = t.carriedFrom ? '<span class="meta-chip carry">↪ carried from ' + esc(fmtShort(parseDateKey(t.carriedFrom))) + '</span>' : '';
+    var dueChip = t.due ? '<span class="meta-chip due">◷ due ' + esc(t.due) + '</span>' : '';
+    var meta = (carryChip || dueChip) ? '<span class="entry-meta">' + carryChip + dueChip + '</span>' : '';
     return '' +
       '<li>' +
-        '<div class="entry-row">' +
-          '<button class="stamp' + (t.done ? ' done' : '') + '" data-action="toggle-task" data-id="' + t.id + '" aria-label="Toggle task"></button>' +
-          '<div class="entry-main">' +
-            '<span class="entry-text' + (t.done ? ' done' : '') + '">' + esc(t.text) + '</span>' +
-            (meta ? '<span class="entry-meta' + (t.carriedFrom ? ' carried' : '') + '">' + esc(meta) + '</span>' : '') +
+        '<div class="task-card' + (t.done ? ' is-done' : '') + '">' +
+          '<div class="entry-row">' +
+            '<button class="stamp' + (t.done ? ' done' : '') + '" data-action="toggle-task" data-id="' + t.id + '" aria-label="Toggle task"></button>' +
+            '<div class="entry-main">' +
+              '<span class="entry-text' + (t.done ? ' done' : '') + '">' + esc(t.text) + '</span>' +
+              meta +
+            '</div>' +
+            '<span class="prio-pill ' + t.priority + '">' + PRIORITY_LABEL[t.priority] + '</span>' +
+            '<button class="comment-toggle-btn' + (commentCount ? ' has-comments' : '') + '" data-action="toggle-comments" data-id="' + t.id + '" aria-label="Toggle comments" aria-expanded="' + (isOpen ? 'true' : 'false') + '">💬 ' + commentCount + '</button>' +
+            '<button class="del-btn" data-action="delete-task" data-id="' + t.id + '" aria-label="Delete task">' + ICONS.trash + '</button>' +
           '</div>' +
-          '<span class="prio-pill ' + t.priority + '">' + PRIORITY_LABEL[t.priority] + '</span>' +
-          '<button class="comment-toggle-btn' + (commentCount ? ' has-comments' : '') + '" data-action="toggle-comments" data-id="' + t.id + '" aria-label="Toggle comments" aria-expanded="' + (isOpen ? 'true' : 'false') + '">\uD83D\uDCAC ' + commentCount + '</button>' +
-          '<button class="del-btn" data-action="delete-task" data-id="' + t.id + '" aria-label="Delete task">' + ICONS.trash + '</button>' +
+          (isOpen ? renderCommentsPanel(t) : '') +
         '</div>' +
-        (isOpen ? renderCommentsPanel(t) : '') +
       '</li>';
   }
 
@@ -5602,7 +5784,7 @@ window.waitForCloud = function (timeoutMs) {
     var tasks = filteredTasks();
     var items = tasks.length
       ? tasks.map(renderTaskItem).join('')
-      : '<li class="empty-note">' + (state.day.tasks.length ? 'Nothing here for this filter.' : 'No tasks logged yet — add the first one below.') + '</li>';
+      : '<li class="empty-note">' + (state.day.tasks.length ? 'Nothing here for this filter.' : 'No tasks yet — add your first focus item above.') + '</li>';
 
     var filters = [
       { id: "all", label: "All" },
@@ -5612,17 +5794,16 @@ window.waitForCloud = function (timeoutMs) {
       return '<button class="' + (state.filter === f.id ? 'active' : '') + '" data-action="set-filter" data-filter="' + f.id + '">' + f.label + '</button>';
     }).join('');
 
+    var remaining = state.day.tasks.filter(function(t){ return !t.done; }).length;
     return '' +
       '<div class="panel">' +
-        '<h2>Work Tasks</h2>' +
-        '<p class="panel-sub">' + fmtDate(state.currentDate) + '</p>' +
+        '<div class="panel-heading">' +
+          '<div><h2>Today\'s tasks</h2><p class="panel-sub">' + fmtDate(state.currentDate) + ' · Keep the list focused and achievable.</p></div>' +
+          '<span class="task-count-chip">' + remaining + ' remaining</span>' +
+        '</div>' +
         '<form class="add-row" data-form="task">' +
-          '<input type="text" name="text" placeholder="Add a task&hellip;" maxlength="140" />' +
-          '<select name="priority">' +
-            '<option value="low">Low</option>' +
-            '<option value="medium" selected>Medium</option>' +
-            '<option value="high">High</option>' +
-          '</select>' +
+          '<input type="text" name="text" placeholder="What do you want to accomplish?" maxlength="140" />' +
+          '<select name="priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>' +
           '<input type="date" name="due" />' +
           '<button type="submit" aria-label="Add task">' + ICONS.plus + '</button>' +
         '</form>' +
@@ -5672,6 +5853,7 @@ window.waitForCloud = function (timeoutMs) {
       case 'prev-day': goPrevDay(); break;
       case 'next-day': goNextDay(); break;
       case 'today-jump': goToday(); break;
+      case 'jump-date': goToDateKey(btn.getAttribute('data-date')); break;
       case 'toggle-task': toggleTask(btn.getAttribute('data-id')); break;
       case 'delete-task': deleteTask(btn.getAttribute('data-id')); break;
       case 'set-filter': setFilter(btn.getAttribute('data-filter')); break;
@@ -6153,6 +6335,24 @@ function ilIsOverdue(issue) {
   return issue.status !== 'Closed' && issue.targetDate && issue.targetDate < today();
 }
 
+let issueView = 'table';
+function ilDaysOld(d){ if(!d)return 0; const a=new Date(d+'T00:00:00'), b=new Date(today()+'T00:00:00'); return Math.max(0,Math.floor((b-a)/86400000)); }
+function setIssueView(v){ issueView=v; document.querySelector('.app-issues .table-wrap').classList.toggle('hidden',v==='kanban'); document.getElementById('issue-kanban').classList.toggle('active',v==='kanban'); document.getElementById('issue-table-btn').classList.toggle('active',v==='table'); document.getElementById('issue-kanban-btn').classList.toggle('active',v==='kanban'); if(v==='kanban') renderKanban(); }
+function renderIssueCommandCenter(){
+  const active=issues.filter(i=>i.status!=='Closed'), overdue=active.filter(ilIsOverdue), high=active.filter(i=>i.severity==='High');
+  const penalty=Math.min(80, overdue.length*12+high.length*7+Math.max(0,active.length-10)*2); const score=Math.max(20,100-penalty);
+  const ring=document.getElementById('issue-health-ring'); if(ring) ring.style.setProperty('--health',score+'%');
+  const sc=document.getElementById('issue-health-score'); if(sc) sc.textContent=score+'%';
+  const attention=[...active].sort((a,b)=>(ilIsOverdue(b)-ilIsOverdue(a)) || ((b.severity==='High')-(a.severity==='High')) || ilDaysOld(b.logDate)-ilDaysOld(a.logDate)).slice(0,3);
+  document.getElementById('attention-count').textContent=attention.length?attention.length+' priority item'+(attention.length===1?'':'s'):'All clear';
+  document.getElementById('attention-grid').innerHTML=attention.length?attention.map(i=>`<div class="attention-card" onclick="editIssue('${i.id}')"><div class="a-top"><span class="id-chip">${esc(i.issueId)}</span><span class="aging">${ilIsOverdue(i)?'OVERDUE · ':''}${ilDaysOld(i.logDate)}d open</span></div><div class="a-title">${esc(i.description)}</div><div class="a-meta">${esc(i.severity)} severity · ${esc(i.priority)} · ${esc(i.status)}</div></div>`).join(''):'<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--text3)">✓ No active issues need immediate attention.</div>';
+}
+function renderKanban(){
+  const host=document.getElementById('issue-kanban'); if(!host)return; const statuses=['Open','In Progress','Pending Approval','Closed'];
+  host.innerHTML=statuses.map(st=>{const list=issues.filter(i=>i.status===st);return `<div class="kanban-col" data-status="${st}" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="dropIssueStatus(event,'${st}',this)"><div class="kanban-head"><span>${st}</span><span class="kanban-count">${list.length}</span></div>${list.map(i=>`<div class="issue-card" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="editIssue('${i.id}')"><div class="mini-tags"><span class="mini-tag">${esc(i.issueId)}</span><span class="mini-tag">${esc(i.priority)}</span><span class="mini-tag">${esc(i.severity)}</span></div><div class="issue-card-title">${esc(i.description)}</div><div class="issue-card-foot"><span>${esc(i.category)}</span><span>${ilIsOverdue(i)?'⚠ Overdue':ilDaysOld(i.logDate)+'d open'}</span></div></div>`).join('')}</div>`}).join('');
+}
+function dropIssueStatus(e,status,col){ e.preventDefault(); col.classList.remove('dragover'); const id=e.dataTransfer.getData('text/plain'); const issue=issues.find(i=>i.id===id); if(!issue||issue.status===status)return; issue.status=status; if(status==='Closed'&&!issue.actualDate)issue.actualDate=today(); if(status!=='Closed')issue.actualDate=issue.actualDate||''; saveIssues(); ilRenderAll(); }
+
 function renderStats() {
   const total = issues.length;
   const open = issues.filter(i=>i.status==='Open').length;
@@ -6229,6 +6429,8 @@ function esc(s) {
 function ilRenderAll() {
   renderStats();
   renderTable();
+  renderIssueCommandCenter();
+  if (issueView === 'kanban') renderKanban();
 }
 
 // ── Export to Excel ────────────────────────────────────────────────
