@@ -3687,54 +3687,9 @@ body{
 }
 </style>
 
-
-<style id="daily-task-contrast-fix">
-/* Daily Tasks contrast fix — keep the light shared background readable */
-.app-daily .datebar{
-  background:#FFFFFF !important;
-  color:#292A3D !important;
-  border:1px solid #E8E8F0 !important;
-}
-.app-daily .datebar button{
-  color:#5143A8 !important;
-}
-.app-daily .datebar button:hover{
-  background:#EEEAFE !important;
-}
-.app-daily .datebar span.dstr{
-  color:#5143A8 !important;
-  font-weight:600;
-}
-.app-daily .datebar .today-btn{
-  color:#5143A8 !important;
-  background:#EEEAFE !important;
-  border-color:#DCD5FA !important;
-}
-.app-daily .streak-badge{
-  color:#5143A8 !important;
-  background:#EEEAFE !important;
-  border:1px solid #DED8FB !important;
-}
-.app-daily .title{
-  color:#292A3D !important;
-}
-.app-daily .eyebrow{
-  color:#6657C8 !important;
-}
-.app-daily .footer-row,
-.app-daily .footer-row .storage-note{
-  color:#707286 !important;
-}
-.app-daily .footer-row .reset-btn{
-  color:#5143A8 !important;
-  border-color:#DCDCE7 !important;
-}
-.app-daily .footer-row .reset-btn:hover{
-  color:#C45163 !important;
-  border-color:#F3D3DA !important;
-}
+<style id="admin-users-style">
+.admin-only-tab{display:none !important}.admin-only-tab.admin-visible{display:flex !important}.admin-users-wrap{max-width:1180px;margin:0 auto;padding:28px 8px 50px;color:#292A3D}.admin-users-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}.admin-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;color:#6657C8;font-weight:700;margin-bottom:5px}.admin-users-head h1{margin:0;font-size:28px;color:#292A3D}.admin-users-head p{margin:7px 0 0;color:#707286;font-size:13px;max-width:720px}.admin-refresh{border:1px solid #DCDCE7;background:#fff;color:#5143A8;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer}.admin-refresh:hover{background:#F3F0FF}.admin-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.admin-kpi{background:#fff;border:1px solid #E8E8F0;border-radius:14px;padding:16px 18px;box-shadow:0 8px 24px rgba(45,42,90,.06)}.admin-kpi span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8B8D9C;font-weight:700}.admin-kpi strong{display:block;margin-top:6px;font-size:25px;color:#292A3D}.admin-table-card{background:#fff;border:1px solid #E8E8F0;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(45,42,90,.07)}.admin-table-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #ECECF2}.admin-table-head strong{font-size:15px}.admin-table-head span{font-size:11px;color:#8B8D9C}.admin-table-scroll{overflow:auto}.admin-users-table{width:100%;border-collapse:collapse;min-width:760px}.admin-users-table th{background:#FAFAFD;text-align:left;padding:11px 14px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7B7D8D}.admin-users-table td{padding:12px 14px;border-top:1px solid #F0F0F4;font-size:12.5px;color:#45475A;vertical-align:middle}.admin-user-cell{display:flex;align-items:center;gap:9px;min-width:180px}.admin-user-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#EEEAFE;color:#5143A8;font-weight:800;overflow:hidden;flex-shrink:0}.admin-user-avatar img{width:100%;height:100%;object-fit:cover}.admin-user-name{font-weight:700;color:#292A3D}.admin-user-sub{font-size:10.5px;color:#9A9BAA;margin-top:2px}.admin-feature{display:inline-flex;padding:4px 8px;border-radius:999px;background:#EEEAFE;color:#5143A8;font-size:10.5px;font-weight:700}.admin-empty{text-align:center!important;padding:38px!important;color:#9A9BAA!important}.admin-privacy-note{margin-top:12px;color:#8B8D9C;font-size:11px;padding:0 4px}@media(max-width:800px){.admin-kpis{grid-template-columns:repeat(2,1fr)}.admin-users-head{flex-direction:column}}
 </style>
-
 </head>
 <body>
 
@@ -3763,6 +3718,10 @@ body{
     <button class="shell-tab" data-tab="storyboard" onclick="showTab('storyboard')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       Story Board Generator
+    </button>
+    <button class="shell-tab admin-only-tab" id="admin-users-tab" data-tab="admin-users" onclick="showTab('admin-users')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
     </button>
   </nav>
   <div class="cloud-widget">
@@ -4081,6 +4040,25 @@ body{
     </div>
   </section>
 
+  <section class="shell-panel admin-users-panel" id="panel-admin-users">
+    <div class="admin-users-wrap">
+      <div class="admin-users-head">
+        <div><div class="admin-eyebrow">PRIVATE ADMIN</div><h1>User Analytics</h1><p>Only the app owner can see this area. See who has signed in and when they last used the app.</p></div>
+        <button class="admin-refresh" type="button" onclick="AdminUsers.refresh()">↻ Refresh</button>
+      </div>
+      <div class="admin-kpis">
+        <div class="admin-kpi"><span>Total users</span><strong id="admin-total-users">—</strong></div>
+        <div class="admin-kpi"><span>Active today</span><strong id="admin-active-today">—</strong></div>
+        <div class="admin-kpi"><span>Active this week</span><strong id="admin-active-week">—</strong></div>
+        <div class="admin-kpi"><span>Last activity</span><strong id="admin-last-activity">—</strong></div>
+      </div>
+      <div class="admin-table-card">
+        <div class="admin-table-head"><strong>People using your app</strong><span id="admin-users-status">Loading…</span></div>
+        <div class="admin-table-scroll"><table class="admin-users-table"><thead><tr><th>User</th><th>Email</th><th>First seen</th><th>Last active</th><th>Logins</th><th>Top feature</th></tr></thead><tbody id="admin-users-body"><tr><td colspan="6" class="admin-empty">Sign in to view usage.</td></tr></tbody></table></div>
+      </div>
+      <div class="admin-privacy-note">🔒 Only basic account identity and activity timestamps are stored for analytics. User project content is not copied into this dashboard.</div>
+    </div>
+  </section>
   <section class="shell-panel" id="panel-daily">
     <div class="panel-card app-daily">
 <div id="dt-app"></div>
@@ -5026,10 +5004,35 @@ body{
 
 <script>
 function showTab(name) {
+  if (name === 'admin-users' && (!window.CloudAdmin || !window.CloudAdmin.isOwnerAdmin(window.__firebaseUser))) { alert('Owner-only area.'); return; }
   document.querySelectorAll('.shell-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.shell-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
   if (name === 'dashboard' && typeof dashRender === 'function') dashRender();
+  if (name !== 'admin-users' && window.CloudAdmin && window.__firebaseUser) window.CloudAdmin.trackUserPresence(window.__firebaseUser,name);
+  if (name === 'admin-users' && window.AdminUsers) window.AdminUsers.refresh();
 }
+
+window.AdminUsers=(function(){
+  function dt(v){try{return v&&v.toDate?v.toDate():(v?new Date(v):null)}catch(e){return null}}
+  function fmt(v){const d=dt(v);return d?d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}
+  function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function top(u){const m=u.featureUsage||{};let best='—',n=0;Object.keys(m).forEach(k=>{const v=Number(m[k])||0;if(v>n){n=v;best=k}});return best==='admin-users'?'—':best}
+  async function refresh(){
+    const body=document.getElementById('admin-users-body'),status=document.getElementById('admin-users-status');if(!body)return;
+    if(!window.__firebaseUser||!window.CloudAdmin.isOwnerAdmin(window.__firebaseUser)){body.innerHTML='<tr><td colspan="6" class="admin-empty">Owner access required.</td></tr>';return}
+    status.textContent='Loading…';
+    try{
+      const users=await window.CloudAdmin.getAdminUsers();users.sort((a,b)=>(dt(b.lastActiveAt)?.getTime()||0)-(dt(a.lastActiveAt)?.getTime()||0));
+      const now=new Date(),day=new Date(now);day.setHours(0,0,0,0),week=new Date(day);week.setDate(week.getDate()-6);
+      const today=users.filter(u=>{const d=dt(u.lastActiveAt);return d&&d>=day}).length, wk=users.filter(u=>{const d=dt(u.lastActiveAt);return d&&d>=week}).length;
+      const latest=users.map(u=>dt(u.lastActiveAt)).filter(Boolean).sort((a,b)=>b-a)[0];
+      document.getElementById('admin-total-users').textContent=users.length;document.getElementById('admin-active-today').textContent=today;document.getElementById('admin-active-week').textContent=wk;document.getElementById('admin-last-activity').textContent=latest?fmt(latest):'—';
+      body.innerHTML=users.length?users.map(u=>{const initial=(u.name||u.email||'?').trim().charAt(0).toUpperCase();const avatar=u.photoURL?'<img src="'+esc(u.photoURL)+'" alt="">':initial;return '<tr><td><div class="admin-user-cell"><div class="admin-user-avatar">'+avatar+'</div><div><div class="admin-user-name">'+esc(u.name||'Unnamed user')+'</div><div class="admin-user-sub">UID: '+esc(String(u.uid||u.id).slice(0,12))+'…</div></div></div></td><td>'+esc(u.email||'—')+'</td><td>'+fmt(u.firstSeenAt)+'</td><td>'+fmt(u.lastActiveAt)+'</td><td>'+esc(u.loginCount||0)+'</td><td><span class="admin-feature">'+esc(top(u))+'</span></td></tr>'}).join(''):'<tr><td colspan="6" class="admin-empty">No users have signed in yet.</td></tr>';
+      status.textContent=users.length+' user'+(users.length===1?'':'s');
+    }catch(e){console.error(e);status.textContent='Access denied';body.innerHTML='<tr><td colspan="6" class="admin-empty">Could not load analytics. Publish the owner-only Firestore rule.</td></tr>'}
+  }
+  return {refresh};
+})();
 </script>
 
 <script>
@@ -5147,6 +5150,10 @@ function clearDebugLog() { DebugLog.clear(); }
               match /users/{userId}/{document=**} {
                 allow read, write: if request.auth != null && request.auth.uid == userId;
               }
+              match /appUsers/{userId} {
+                allow create, update: if request.auth != null && request.auth.uid == userId;
+                allow read: if request.auth != null && request.auth.token.email == "REPLACE_WITH_YOUR_GOOGLE_EMAIL";
+              }
             }
           }
 
@@ -5169,7 +5176,7 @@ function clearDebugLog() { DebugLog.clear(); }
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
   import {
-    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp
+    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, getDocs, collection, increment
   } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
   import {
     getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup
@@ -5191,6 +5198,10 @@ function clearDebugLog() { DebugLog.clear(); }
   appId: "1:215394813379:web:ac870218a2fdc3d2522976"
 
 };
+
+  // OWNER-ONLY ANALYTICS: replace this with the Google email you use to own the app.
+  // Keep this identical to the email in the Firestore appUsers read rule.
+  const OWNER_ADMIN_EMAIL = "manikandan0207rm@gmail.com";
 
   // ===================================================
 
@@ -5251,6 +5262,10 @@ function clearDebugLog() { DebugLog.clear(); }
         Object.keys(pendingSaveTimers).forEach(k => { clearTimeout(pendingSaveTimers[k]); delete pendingSaveTimers[k]; });
         if (user) {
           currentUid = user.uid;
+          window.__firebaseUser = user;
+          trackUserPresence(user);
+          const adminTab = document.getElementById('admin-users-tab');
+          if (adminTab) adminTab.classList.toggle('admin-visible', isOwnerAdmin(user));
           setStatus('Synced — signed in', true);
           const banner = document.getElementById('cloud-banner');
           if (banner) banner.style.display = 'none';
@@ -5261,6 +5276,9 @@ function clearDebugLog() { DebugLog.clear(); }
           }));
         } else {
           currentUid = null;
+          window.__firebaseUser = null;
+          const adminTab = document.getElementById('admin-users-tab');
+          if (adminTab) adminTab.classList.remove('admin-visible');
           setStatus('Sign in to sync', false);
           const banner = document.getElementById('cloud-banner');
           if (banner) banner.style.display = 'block';
@@ -5392,6 +5410,28 @@ function clearDebugLog() { DebugLog.clear(); }
     saveTimers[key] = setTimeout(attempt, delay || 800);
     pendingSaveTimers[key] = saveTimers[key];
   }
+
+  async function trackUserPresence(user, feature) {
+    if (!db || !user) return;
+    try {
+      const ref = doc(db, 'appUsers', user.uid);
+      const snap = await getDoc(ref);
+      const payload = { uid:user.uid, name:user.displayName||'', email:user.email||'', photoURL:user.photoURL||'', lastActiveAt:serverTimestamp() };
+      if (!snap.exists()) { payload.firstSeenAt=serverTimestamp(); payload.loginCount=1; }
+      else if (!feature) { payload.loginCount=increment(1); }
+      if (feature) payload['featureUsage.'+feature]=increment(1);
+      await setDoc(ref,payload,{merge:true});
+    } catch(err) { console.warn('User analytics write skipped:',err); }
+  }
+  async function getAdminUsers() {
+    if (!db || !currentUid) throw new Error('Not signed in');
+    const snap=await getDocs(collection(db,'appUsers'));
+    return snap.docs.map(d=>({id:d.id,...d.data()}));
+  }
+  function isOwnerAdmin(user) {
+    return !!(user && OWNER_ADMIN_EMAIL.indexOf('REPLACE_WITH_') !== 0 && String(user.email||'').toLowerCase()===OWNER_ADMIN_EMAIL.toLowerCase());
+  }
+  window.CloudAdmin={isOwnerAdmin,getAdminUsers,trackUserPresence};
 
   async function signInGoogle() {
     if (!auth) {
@@ -7456,5 +7496,6 @@ function dashRender() {
 showTab('dashboard');
 </script>
 
+<!-- OWNER ANALYTICS SETUP: Replace OWNER_ADMIN_EMAIL above and the matching Firestore rule email with your Google account, then publish the rules. -->
 </body>
 </html>
